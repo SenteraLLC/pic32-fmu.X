@@ -28,6 +28,9 @@ uint32_t CoreTime32sGet();      // Get 32-bit core time in seconds.
 uint32_t CoreTime32msGet();     // Get 32-bit core time in milliseconds.
 uint32_t CoreTime32usGet();     // Get 32-bit core time in microseconds.
 
+void CoreTimeDelayUs(uint32_t us);
+void CoreTimeDelayMs(uint32_t ms);
+
 
 #endif	/* CORETIME_H */
 

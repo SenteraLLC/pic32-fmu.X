@@ -79,6 +79,22 @@ uint32_t CoreTime32usGet()
 
 //==============================================================================
 
+void CoreTimeDelayUs(uint32_t us)
+{
+    uint64_t microseconds = CoreTime64usGet() + us;
+    while (CoreTime64usGet() < microseconds);
+}
+
+//==============================================================================
+
+void CoreTimeDelayMs(uint32_t ms)
+{
+    uint64_t milliseconds = CoreTime64msGet() + ms;
+    while (CoreTime64msGet() < milliseconds);
+}
+
+//==============================================================================
+
 // Core Timer ISR
 
 void __ISR (_CORE_TIMER_VECTOR, IPL7SRS) CoreTimerISR(void)

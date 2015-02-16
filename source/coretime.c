@@ -10,8 +10,9 @@
 #include "stdtypes.h"
 
 
-static uint32_t coreTimeOverflow;   // Core timer overflow counter.
-                                    // Used to provide 64-bit system time.
+static volatile uint32_t coreTimeOverflow;  // Core timer overflow counter,
+                                            // used to provide 64-bit
+                                            // system time.
 
 
 //==============================================================================

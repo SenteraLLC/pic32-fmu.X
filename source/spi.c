@@ -170,10 +170,17 @@ void __ISR (_SPI_2_VECTOR, IPL7SRS) SPI2ISR(void)
     if (IFS1bits.SPI2TXIF == 1)
     {
         // TX buffer is one-half or more empty.
-        while ((SPI2STATbits.SPITBF == 0) && (txCount < spi2Xfer->length))
+        if ((SPI2STATbits.SPITBF == 0) && (txCount < spi2Xfer->length))
         {
             // Load the TX buffer.
-            SPI2BUF = spi2Xfer->txBuf[txCount];
+            if (spi2Xfer->txBuf == 0)
+            {
+                SPI2BUF = 0x00;
+            }
+            else
+            {
+                SPI2BUF = spi2Xfer->txBuf[txCount];
+            }
             txCount++;
         }
         if (txCount == spi2Xfer->length)

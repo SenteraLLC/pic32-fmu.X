@@ -13,6 +13,8 @@
 
 //==============================================================================
 
+#define VN100_MAX_PAYLOAD_SIZE  100     // Maximum payload size is 100 bytes.
+
 // VN-100 Register IDs
 
 typedef enum {
@@ -119,8 +121,7 @@ typedef struct __attribute__ ((packed)) {
     VN100_REG_E     regID : 8;      // Register ID.
     uint8_t         zero_0;         // Zero byte. (0x00)
     uint8_t         zero_1;         // Zero byte. (0x00)
-    uint8_t         payload[256];   // Payload data.
-} VN100_SPI_REQUEST_PKT;
+} VN100_SPI_REQUEST_HEADER;
 
 
 typedef struct __attribute__ ((packed)) {
@@ -128,8 +129,20 @@ typedef struct __attribute__ ((packed)) {
     VN100_CMD_E     cmdID : 8;      // Command ID.
     VN100_REG_E     regID : 8;      // Register ID.
     VN100_ERR_E     errID : 8;      // Error ID.
-    uint8_t         payload[256];   // Payload data.
-} VN100_SPI_RESPONSE_PKT;
+} VN100_SPI_RESPONSE_HEADER;
+
+
+typedef union {
+    VN100_SPI_REQUEST_HEADER    request;        // Request header format.
+    VN100_SPI_RESPONSE_HEADER   response;       // Response header format.
+    UINT_32                     raw;            // Raw header data.
+} VN100_SPI_HEADER;
+
+
+typedef struct __attribute__ ((packed)) {
+    VN100_SPI_HEADER    header;                             // Packet header.
+    uint8_t             payload[VN100_MAX_PAYLOAD_SIZE];    // Packet payload.
+} VN100_SPI_PKT;
 
 
 //==============================================================================
@@ -161,6 +174,18 @@ typedef struct __attribute__ ((packed)) {
     UINT_8   hotFix;            // Hot fix number. Numbers above 100 are
                                 //   reserved for custom firmware version.
 } VN100_FIRMWARE_VERSION;
+
+// Communication Protocol Control (ID 30)
+
+typedef struct __attribute__ ((packed)) {
+    UINT_8  serialCount;        // Append counter or time to serial messages.
+    UINT_8  serialStatus;       // Append the status to serial messages.
+    UINT_8  spiCount;           // Append counter to SPI messages.
+    UINT_8  spiStatus;          // Append status to SPI messages.
+    UINT_8  serialChecksum;     // Choose serial checksum type.
+    UINT_8  spiChecksum;        // Choose SPI checksum type.
+    UINT_8  errorMode;          // Choose action when errors are generated.
+} VN100_COMM_PROTO_CTRL;
 
 // IMU Measurements (ID 54)
 

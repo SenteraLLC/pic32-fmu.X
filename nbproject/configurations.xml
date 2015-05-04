@@ -4,14 +4,14 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <itemPath>include/cfgbits.h</itemPath>
-      <itemPath>include/spi.h</itemPath>
-      <itemPath>include/pic32fmu.h</itemPath>
-      <itemPath>include/vn100.h</itemPath>
-      <itemPath>include/coretime.h</itemPath>
-      <itemPath>include/stdtypes.h</itemPath>
-      <itemPath>include/init.h</itemPath>
-      <itemPath>include/oemstar.h</itemPath>
+      <itemPath>inc/cfgbits.h</itemPath>
+      <itemPath>inc/coretime.h</itemPath>
+      <itemPath>inc/init.h</itemPath>
+      <itemPath>inc/oemstar.h</itemPath>
+      <itemPath>inc/pic32fmu.h</itemPath>
+      <itemPath>inc/spi.h</itemPath>
+      <itemPath>inc/stdtypes.h</itemPath>
+      <itemPath>inc/vn100.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -20,12 +20,12 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <itemPath>source/pic32fmu.c</itemPath>
-      <itemPath>source/spi.c</itemPath>
-      <itemPath>source/vn100.c</itemPath>
-      <itemPath>source/coretime.c</itemPath>
-      <itemPath>source/oemstar.c</itemPath>
-      <itemPath>source/init.c</itemPath>
+      <itemPath>src/coretime.c</itemPath>
+      <itemPath>src/init.c</itemPath>
+      <itemPath>src/oemstar.c</itemPath>
+      <itemPath>src/pic32fmu.c</itemPath>
+      <itemPath>src/spi.c</itemPath>
+      <itemPath>src/vn100.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -34,8 +34,8 @@
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
-    <Elem>include</Elem>
-    <Elem>source</Elem>
+    <Elem>inc</Elem>
+    <Elem>src</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -79,7 +79,7 @@
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
         <property key="exclude-floating-point" value="false"/>
-        <property key="extra-include-directories" value="include"/>
+        <property key="extra-include-directories" value="inc"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="false"/>
@@ -157,7 +157,7 @@
         <property key="enable-unroll-loops" value="false"/>
         <property key="exceptions" value="true"/>
         <property key="exclude-floating-point" value="false"/>
-        <property key="extra-include-directories" value="include"/>
+        <property key="extra-include-directories" value="inc"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="false"/>

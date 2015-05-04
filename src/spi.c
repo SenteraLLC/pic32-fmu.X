@@ -9,15 +9,17 @@
 #include "spi.h"
 
 
-static SPI_XFER *spi2Xfer;      // Null if bus is idle, else pointer to data.
-static volatile int rxCount;    // Count of SPI bytes received.
-static volatile int txCount;    // Count of SPI bytes transmitted.
+static SPI_XFER *spi2Xfer;              // Null if idle, else pointer to data.
+static volatile unsigned int rxCount;   // Count of SPI bytes received.
+static volatile unsigned int txCount;   // Count of SPI bytes transmitted.
 
 
 //==============================================================================
 
 void SPITask()
 {
+    uint8_t data;
+    
     static enum {
         SM_IDLE,
         SM_START,
@@ -71,7 +73,11 @@ void SPITask()
 
             while (SPI2STATbits.SPIRBE == 0)
             {
-                spi2Xfer->rxBuf[rxCount] = SPI2BUF;
+                data = SPI2BUF;
+                if (spi2Xfer->rxBuf != 0)
+                {
+                    spi2Xfer->rxBuf[rxCount] = data;
+                }
                 rxCount++;
             }
 
@@ -141,6 +147,8 @@ int SPIXfer(SPI_XFER *xfer)
 
 void __ISR (_SPI_2_VECTOR, IPL7SRS) SPI2ISR(void)
 {
+    uint8_t data;
+
     // SPI2 Error Interrupt -------------------------------
 
     if (IFS1bits.SPI2EIF == 1)
@@ -159,7 +167,11 @@ void __ISR (_SPI_2_VECTOR, IPL7SRS) SPI2ISR(void)
         while (SPI2STATbits.SPIRBE == 0)
         {
             // Unload RX buffer.
-            spi2Xfer->rxBuf[rxCount] = SPI2BUF;
+            data = SPI2BUF;
+            if (spi2Xfer->rxBuf != 0)
+            {
+                spi2Xfer->rxBuf[rxCount] = data;
+            }
             rxCount++;
         }
         IFS1CLR = _IFS1_SPI2RXIF_MASK;      // Clear RX interrupt flag.
@@ -170,7 +182,10 @@ void __ISR (_SPI_2_VECTOR, IPL7SRS) SPI2ISR(void)
     if (IFS1bits.SPI2TXIF == 1)
     {
         // TX buffer is one-half or more empty.
-        if ((SPI2STATbits.SPITBF == 0) && (txCount < spi2Xfer->length))
+        while ((SPI2STATbits.SPITBF == 0) &&        // TX buffer not full, and
+                (txCount < spi2Xfer->length) &&     // more TX bytes left, and
+                ((txCount - rxCount) < 16))         // TX count not exceeding
+                                                    //   16 byte RX buffer.
         {
             // Load the TX buffer.
             if (spi2Xfer->txBuf == 0)

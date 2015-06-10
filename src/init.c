@@ -6,6 +6,8 @@
 
 #include <xc.h>
 #include <sys/attribs.h>
+#include "tcpip/tcpip.h"
+#include "ksz8895.h"
 #include "init.h"
 
 
@@ -48,6 +50,35 @@ static void InitGPIO()
     TRISGbits.TRISG9 = 0;       // Output
     ODCGbits.ODCG9 = 0;         // Normal
     LATGbits.LATG9 = 1;         // High
+    
+    //-----------------------------------------------------
+
+    // Software SPI Bit-bang CLK (RB6)
+
+    AD1PCFGbits.PCFG6 = 1;      // Analog input pin in digital mode.
+    ODCBbits.ODCB6 = 0;         // Normal
+    TRISBbits.TRISB6 = 0;       // Output
+    LATBbits.LATB6 = 0;         // Logic Low
+    
+    // Software SPI Bit-bang MOSI (RB9)
+
+    AD1PCFGbits.PCFG9 = 1;      // Analog input pin in digital mode.
+    ODCBbits.ODCB9 = 0;         // Normal
+    TRISBbits.TRISB9 = 0;       // Output
+    LATBbits.LATB9 = 0;         // Logic Low
+    
+    // Software SPI Bit-bang MISO (RB10)
+
+    AD1PCFGbits.PCFG10 = 1;     // Analog input pin in digital mode.
+    ODCBbits.ODCB10 = 0;        // Normal
+    TRISBbits.TRISB10 = 1;      // Input
+    
+    // Software SPI Bit-bang !SS for Ethernet Switch (RB7)
+
+    AD1PCFGbits.PCFG7 = 1;      // Analog input pin in digital mode.
+    ODCBbits.ODCB7 = 0;         // Normal
+    TRISBbits.TRISB7 = 0;       // Output
+    LATBbits.LATB7 = 1;         // Logic High
 }
 
 //==============================================================================
@@ -55,11 +86,14 @@ static void InitGPIO()
 static void InitTMR()
 {
     // Core Timer
-
     IPC0bits.CTIP = 7;              // Set core timer interrupt priority.
     IPC0bits.CTIS = 0;              // Set core timer interrupt subpriority.
     IFS0CLR = _IFS0_CTIF_MASK;      // Clear core timer interrupt flag.
     IEC0SET = _IEC0_CTIE_MASK;      // Enable CT interrupts.
+    
+    //  Timer 5 (software SPI clock)
+    ConfigIntTimer5(T5_INT_OFF | T5_INT_PRIOR_7 | T5_INT_SUB_PRIOR_0);
+    OpenTimer5(T5_ON | T5_IDLE_CON | T5_PS_1_1, 800);       // 100 kHz
 }
 
 //==============================================================================
@@ -121,6 +155,73 @@ static void InitWDT()
 
 //==============================================================================
 
+static void InitTCPIPStack()
+{
+    static ROM uint8_t SerializedMACAddress[6] = 
+            {MY_DEFAULT_MAC_BYTE1, MY_DEFAULT_MAC_BYTE2, 
+             MY_DEFAULT_MAC_BYTE3, MY_DEFAULT_MAC_BYTE4, 
+             MY_DEFAULT_MAC_BYTE5, MY_DEFAULT_MAC_BYTE6};
+
+    TickInit();
+
+    #if defined(STACK_USE_MPFS2)
+    MPFSInit();
+    #endif
+
+    // Initialize Stack and application related NV variables into AppConfig.
+
+    // Start out zeroing all AppConfig bytes to ensure all fields are
+    // deterministic for checksum generation
+    memset((void*)&AppConfig, 0x00, sizeof(AppConfig));    
+    
+    AppConfig.Flags.bIsDHCPEnabled = false;
+    AppConfig.Flags.bInConfigMode = true;
+    
+    // Use default MAC address of the module
+    memcpypgm2ram((void*)&AppConfig.MyMACAddr, 
+            (ROM void*)SerializedMACAddress, sizeof(AppConfig.MyMACAddr));    
+
+    AppConfig.MyIPAddr.Val = 
+            MY_DEFAULT_IP_ADDR_BYTE1 | 
+            MY_DEFAULT_IP_ADDR_BYTE2 << 8ul | 
+            MY_DEFAULT_IP_ADDR_BYTE3 << 16ul | 
+            MY_DEFAULT_IP_ADDR_BYTE4 << 24ul;
+    AppConfig.DefaultIPAddr.Val = AppConfig.MyIPAddr.Val;
+    AppConfig.MyMask.Val = 
+            MY_DEFAULT_MASK_BYTE1 | 
+            MY_DEFAULT_MASK_BYTE2 << 8ul | 
+            MY_DEFAULT_MASK_BYTE3 << 16ul | 
+            MY_DEFAULT_MASK_BYTE4 << 24ul;
+    AppConfig.DefaultMask.Val = AppConfig.MyMask.Val;
+    AppConfig.MyGateway.Val = 
+            MY_DEFAULT_GATE_BYTE1 | 
+            MY_DEFAULT_GATE_BYTE2 << 8ul | 
+            MY_DEFAULT_GATE_BYTE3 << 16ul | 
+            MY_DEFAULT_GATE_BYTE4 << 24ul;
+    AppConfig.PrimaryDNSServer.Val = 
+            MY_DEFAULT_PRIMARY_DNS_BYTE1 | 
+            MY_DEFAULT_PRIMARY_DNS_BYTE2 << 8ul | 
+            MY_DEFAULT_PRIMARY_DNS_BYTE3 << 16ul |
+            MY_DEFAULT_PRIMARY_DNS_BYTE4 << 24ul;
+    AppConfig.SecondaryDNSServer.Val = 
+            MY_DEFAULT_SECONDARY_DNS_BYTE1 | 
+            MY_DEFAULT_SECONDARY_DNS_BYTE2 << 8ul |
+            MY_DEFAULT_SECONDARY_DNS_BYTE3 << 16ul |
+            MY_DEFAULT_SECONDARY_DNS_BYTE4 << 24ul;
+
+    // Load the default NetBIOS Host Name
+    memcpypgm2ram(AppConfig.NetBIOSName, (ROM void*) MY_DEFAULT_HOST_NAME, 16);
+    FormatNetBIOSName(AppConfig.NetBIOSName);
+
+    // Initialize core stack layers (MAC, ARP, TCP, UDP) and
+    // application modules (HTTP, SNMP, etc.)
+    StackInit();
+
+    return;
+}
+
+//==============================================================================
+
 void InitBoard()
 {
     // Initialize microcontroller peripherals.
@@ -129,6 +230,12 @@ void InitBoard()
     InitTMR();
     InitSPI();
     InitINT();
+
+    // Initialize external hardware peripherals.
+    KSZ8895Init();
+
+    // Initialize software libraries.
+    InitTCPIPStack();
     
     // Initialize watchdog timer.
     InitWDT();

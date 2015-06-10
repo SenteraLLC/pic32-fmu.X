@@ -4,12 +4,10 @@
 /
 *******************************************************************************/
 
-
 #ifndef STDTYPES_H
 #define	STDTYPES_H
 
-#include <inttypes.h>
-
+#include <stdint.h>
 
 
 // Typedefs ====================================================================
@@ -458,10 +456,6 @@ typedef union fp32bit {         // 32-bit Floating Point
     } binary32;
 } FP_32;
 
-
-#ifdef	__cplusplus
-}
-#endif
 
 #endif	/* STDTYPES_H */
 

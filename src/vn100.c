@@ -23,7 +23,7 @@ static VN100_IMU_MEASUREMENTS   imuMeasurements;
 static int VN100Init();
 static unsigned int VN100RegSizeGet(VN100_REG_E reg);
 static VN100_SPI_PKT* VN100ReadReg(VN100_REG_E reg);
-static VN100_SPI_PKT* VN100WriteReg(VN100_REG_E reg, void* regData);
+//static VN100_SPI_PKT* VN100WriteReg(VN100_REG_E reg, void* regData);
 
 
 //==============================================================================
@@ -156,9 +156,9 @@ static int VN100Init()
 
 //==============================================================================
 
-static VN100_SPI_PKT* VN100WriteReg(VN100_REG_E reg, void* regData)
-{
-    VN100_SPI_PKT* retVal = 0;
+//static VN100_SPI_PKT* VN100WriteReg(VN100_REG_E reg, void* regData)
+//{
+//    VN100_SPI_PKT* retVal = 0;
 //
 //    static VN100_SPI_PKT pkt;
 //    
@@ -245,8 +245,8 @@ static VN100_SPI_PKT* VN100WriteReg(VN100_REG_E reg, void* regData)
 //            break;
 //        }
 //    }
-    return retVal;
-}
+//    return retVal;
+//}
 
 
 //==============================================================================

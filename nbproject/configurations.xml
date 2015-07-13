@@ -64,6 +64,7 @@
       <itemPath>src/vn100.c</itemPath>
       <itemPath>src/ksz8895.c</itemPath>
       <itemPath>src/softspi.c</itemPath>
+      <itemPath>src/can.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

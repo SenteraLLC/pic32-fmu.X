@@ -45,6 +45,19 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 // Configuration Bits ---------------------------------------------------------
 
+// NOTE:
+//  SYSCLK := Clock for CPU and select peripherals.
+//  PBCLK  := Clock for peripherals.
+//
+//  SYSCLK  = Fosc  / FPLLIDIV * PLLMULT / PLLODIV
+//          = 10MHz / 2        * 16      / 1
+//          = 80MHz
+//
+//  PBCLK   = SYSCLK / PBDIV
+//          = 80MHz  / 1
+//          = 80MHz
+//
+
     // USB VBUS_ON Selection bit: ---------------------------------------------
     //
     //   OFF = VBUS_ON pin is controlled by the Port Function

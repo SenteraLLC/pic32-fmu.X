@@ -7,6 +7,7 @@
 #ifndef FMUCOMM_H
 #define	FMUCOMM_H
 
+#include "stdtypes.h"
 
 
 // Typedefs ====================================================================
@@ -33,7 +34,7 @@ typedef struct
     uint16_t length;
     uint8_t  payload;
     uint16_t crc;
-};
+} FMUCOMM_PKT;
 
 typedef struct
 {
@@ -127,6 +128,7 @@ typedef struct
 
 // Function Prototypes =========================================================
 
+void FMUCommTask();
 
 
 

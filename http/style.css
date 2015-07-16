@@ -1,0 +1,63 @@
+
+body {
+    background-attachment:  fixed;
+    background-image:       url(bg.gif);
+    padding-top:            20px;
+    text-align:             center;
+}
+
+#container {
+    margin:             0 auto;
+    width:              300px;
+}
+
+.heading {
+    color:              rgb(10,148,67);
+    font-family:        'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    font-size:          12px;
+    font-weight:        bold;
+}
+
+h1 {
+    color:              black;
+    font-family:        'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    font-size:          24px;
+}
+
+p, a {
+    font-family:        'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    color:              black;
+    font-size:          12px;
+}
+
+input, select {
+    font-family:        'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    color:              black;
+    font-size:          12px;
+}
+
+table {
+    font-family:            'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    color:                  black;
+    font-size:              12px;
+    background-color:       #FFFFFF;
+    padding:                20px;
+    border-right-style:     solid;
+    border-left-style:      solid;
+    border-bottom-style:    solid;
+    border-top-style:       solid;
+    border-right-width:     4px;
+    border-left-width:      4px;
+    border-bottom-width:    4px;
+    border-top-width:       4px;
+    border-right-color:     silver;
+    border-left-color:      goldenrod;
+    border-bottom-color:    goldenrod;
+    border-top-color:       silver;
+    width:                  300px;
+    text-align:             left;
+}
+
+input {
+    text-align: center
+}

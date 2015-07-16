@@ -331,7 +331,6 @@
         <property key="COMPARATOR" value="true"/>
         <property key="DMA" value="true"/>
         <property key="ETHERNET CONTROLLER" value="true"/>
-        <property key="Freeze All Other Peripherals" value="true"/>
         <property key="I2C1" value="true"/>
         <property key="I2C3" value="true"/>
         <property key="I2C4" value="true"/>

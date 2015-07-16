@@ -56,16 +56,16 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
  *
  */
 
-//#define STACK_USE_UART                          // Application demo using UART for IP address display and stack configuration
-//#define STACK_USE_UART2TCP_BRIDGE               // UART to TCP Bridge application example
-//#define STACK_USE_IP_GLEANING
+//#define STACK_USE_UART                        // Application demo using UART for IP address display and stack configuration
+//#define STACK_USE_UART2TCP_BRIDGE             // UART to TCP Bridge application example
+//#define STACK_USE_IP_GLEANING                 
 #define STACK_USE_ICMP_SERVER                   // Ping query and response capability
-//#define STACK_USE_ICMP_CLIENT                   // Ping transmission capability
-//#define STACK_USE_HTTP2_SERVER                // New HTTP server with POST, Cookies, Authentication, etc.
+//#define STACK_USE_ICMP_CLIENT                 // Ping transmission capability
+#define STACK_USE_HTTP2_SERVER                  // New HTTP server with POST, Cookies, Authentication, etc.
 //#define STACK_USE_SSL_SERVER                  // SSL server socket support (Requires SW300052)
 //#define STACK_USE_SSL_CLIENT                  // SSL client socket support (Requires SW300052)
-//#define STACK_USE_AUTO_IP                       // Dynamic link-layer IP address automatic configuration protocol
-//#define STACK_USE_DHCP_CLIENT                   // Dynamic Host Configuration Protocol client for obtaining IP address and other parameters
+//#define STACK_USE_AUTO_IP                     // Dynamic link-layer IP address automatic configuration protocol
+//#define STACK_USE_DHCP_CLIENT                 // Dynamic Host Configuration Protocol client for obtaining IP address and other parameters
 //#define STACK_USE_DHCP_SERVER                 // Single host DHCP server
 //#define STACK_USE_FTP_SERVER                  // File Transfer Protocol (old)
 //#define STACK_USE_SMTP_CLIENT                 // Simple Mail Transfer Protocol for sending email
@@ -78,9 +78,9 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 //#define STACK_USE_GENERIC_TCP_SERVER_EXAMPLE  // ToUpper server example in generic_tcp_server.c
 //#define STACK_USE_TELNET_SERVER               // Telnet server
 //#define STACK_USE_ANNOUNCE                    // Microchip Embedded Ethernet Device Discoverer server/client
-//#define STACK_USE_DNS                           // Domain Name Service Client for resolving hostname strings to IP addresses
+//#define STACK_USE_DNS                         // Domain Name Service Client for resolving hostname strings to IP addresses
 //#define STACK_USE_DNS_SERVER                  // Domain Name Service Server for redirection to the local device
-//#define STACK_USE_NBNS                          // NetBIOS Name Service Server for repsonding to NBNS hostname broadcast queries
+//#define STACK_USE_NBNS                        // NetBIOS Name Service Server for repsonding to NBNS hostname broadcast queries
 //#define STACK_USE_REBOOT_SERVER               // Module for resetting this PIC remotely.  Primarily useful for a Bootloader.
 //#define STACK_USE_SNTP_CLIENT                 // Simple Network Time Protocol for obtaining current date/time from Internet
 //#define STACK_USE_UDP_PERFORMANCE_TEST        // Module for testing UDP TX performance characteristics.  NOTE: Enabling this will cause a huge amount of UDP broadcast packets to flood your network on the discard port.  Use care when enabling this on production networks, especially with VPNs (could tunnel broadcast traffic across a limited bandwidth connection).
@@ -110,7 +110,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
  *
  *   Supported serial flash parts include the SST25VFxxxB series.
  */
-#define MPFS_USE_EEPROM
+//#define MPFS_USE_EEPROM
 //#define MPFS_USE_SPI_FLASH
 
 /* EEPROM Addressing Selection
@@ -227,8 +227,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
  */
     // Allocate how much total RAM (in bytes) you want to allocate
     // for use by your TCP TCBs, RX FIFOs, and TX FIFOs.
-    #define TCP_ETH_RAM_SIZE                    (8192ul)
-    #define TCP_PIC_RAM_SIZE                    (0ul)
+    #define TCP_ETH_RAM_SIZE                    (0ul)
+    #define TCP_PIC_RAM_SIZE                    (10240ul)
     #define TCP_SPI_RAM_SIZE                    (0ul)
     #define TCP_SPI_RAM_BASE_ADDRESS            (0x00)
 
@@ -276,64 +276,64 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
           // STACK_USE_GENERIC_TCP_SERVER_EXAMPLE and STACK_USE_IPERF at
           // the same time, you might need to configure these sockets to be smaller
           #if defined(STACK_USE_GENERIC_TCP_CLIENT_EXAMPLE)
-            {TCP_PURPOSE_GENERIC_TCP_CLIENT, TCP_ETH_RAM, 1024, 100},
+            {TCP_PURPOSE_GENERIC_TCP_CLIENT, TCP_PIC_RAM, 1024, 100},
           #endif
 
           #if defined(STACK_USE_GENERIC_TCP_SERVER_EXAMPLE)
-            {TCP_PURPOSE_GENERIC_TCP_SERVER, TCP_ETH_RAM, 20, 4096},
+            {TCP_PURPOSE_GENERIC_TCP_SERVER, TCP_PIC_RAM, 20, 4096},
           #endif
 
           #if defined(STACK_USE_IPERF) // These sockets are also used in Iperf
-            {TCP_PURPOSE_GENERIC_TCP_CLIENT, TCP_ETH_RAM, 1024, 100},
-            {TCP_PURPOSE_GENERIC_TCP_SERVER, TCP_ETH_RAM, 20, 4096},
+            {TCP_PURPOSE_GENERIC_TCP_CLIENT, TCP_PIC_RAM, 1024, 100},
+            {TCP_PURPOSE_GENERIC_TCP_SERVER, TCP_PIC_RAM, 20, 4096},
           #endif
 
           #ifdef STACK_USE_AUTOUPDATE_TCPCLIENT
-            {TCP_PURPOSE_AUTOUPDATE_TCP_CLIENT, TCP_ETH_RAM, 256/*4026*/, 2048},
+            {TCP_PURPOSE_AUTOUPDATE_TCP_CLIENT, TCP_PIC_RAM, 256/*4026*/, 2048},
           #endif
 
           #ifdef STACK_USE_TELNET_SERVER
-            {TCP_PURPOSE_TELNET, TCP_ETH_RAM, 200, 150},
-            //{TCP_PURPOSE_TELNET, TCP_ETH_RAM, 200, 150},
-            //{TCP_PURPOSE_TELNET, TCP_ETH_RAM, 200, 150},
+            {TCP_PURPOSE_TELNET, TCP_PIC_RAM, 200, 150},
+            //{TCP_PURPOSE_TELNET, TCP_PIC_RAM, 200, 150},
+            //{TCP_PURPOSE_TELNET, TCP_PIC_RAM, 200, 150},
           #endif
 
           #ifdef STACK_USE_FTP_SERVER
-            {TCP_PURPOSE_FTP_COMMAND, TCP_ETH_RAM, 100, 40},
+            {TCP_PURPOSE_FTP_COMMAND, TCP_PIC_RAM, 100, 40},
           #endif
 
           #ifdef STACK_USE_FTP_CLIENT
-            {TCP_PURPOSE_FTP_DATA, TCP_ETH_RAM, 0, 128},
+            {TCP_PURPOSE_FTP_DATA, TCP_PIC_RAM, 0, 128},
           #endif
 
           #ifdef STACK_USE_TCP_PERFORMANCE_TEST
-            {TCP_PURPOSE_TCP_PERFORMANCE_TX, TCP_ETH_RAM, 200, 1},
-            //{TCP_PURPOSE_TCP_PERFORMANCE_RX, TCP_ETH_RAM, 40, 1500}, // For measuring TCP throughput, was replaced by Iperf, so don't need anymore
+            {TCP_PURPOSE_TCP_PERFORMANCE_TX, TCP_PIC_RAM, 200, 1},
+            //{TCP_PURPOSE_TCP_PERFORMANCE_RX, TCP_PIC_RAM, 40, 1500}, // For measuring TCP throughput, was replaced by Iperf, so don't need anymore
           #endif
 
           #ifdef STACK_USE_UART2TCP_BRIDGE
-            {TCP_PURPOSE_UART_2_TCP_BRIDGE, TCP_ETH_RAM, 256, 256},
+            {TCP_PURPOSE_UART_2_TCP_BRIDGE, TCP_PIC_RAM, 256, 256},
           #endif
 
           #ifdef STACK_USE_HTTP2_SERVER
             #if defined(STACK_USE_SSL_SERVER) || defined(STACK_USE_SSL_CLIENT)
-              {TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 800, 800},
-              {TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 800, 800},
+              {TCP_PURPOSE_HTTP_SERVER, TCP_PIC_RAM, 800, 800},
+              {TCP_PURPOSE_HTTP_SERVER, TCP_PIC_RAM, 800, 800},
             #else
-              {TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 1000, 1000},
-              {TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 1000, 1000},
+              {TCP_PURPOSE_HTTP_SERVER, TCP_PIC_RAM, 1500, 1500},
+              {TCP_PURPOSE_HTTP_SERVER, TCP_PIC_RAM, 1500, 1500},
             #endif
           #endif
 
           #ifdef STACK_USE_SMTP_CLIENT
-            {TCP_PURPOSE_DEFAULT, TCP_ETH_RAM, 1000, 1000},
+            {TCP_PURPOSE_DEFAULT, TCP_PIC_RAM, 1000, 1000},
           #endif
 
           #ifdef STACK_USE_BERKELEY_API
-            {TCP_PURPOSE_BERKELEY_SERVER, TCP_ETH_RAM, 25, 20},
-            {TCP_PURPOSE_BERKELEY_SERVER, TCP_ETH_RAM, 25, 20},
-            {TCP_PURPOSE_BERKELEY_SERVER, TCP_ETH_RAM, 25, 20},
-            {TCP_PURPOSE_BERKELEY_CLIENT, TCP_ETH_RAM, 125, 100},
+            {TCP_PURPOSE_BERKELEY_SERVER, TCP_PIC_RAM, 25, 20},
+            {TCP_PURPOSE_BERKELEY_SERVER, TCP_PIC_RAM, 25, 20},
+            {TCP_PURPOSE_BERKELEY_SERVER, TCP_PIC_RAM, 25, 20},
+            {TCP_PURPOSE_BERKELEY_CLIENT, TCP_PIC_RAM, 125, 100},
           #endif
         };
         #define END_OF_TCP_CONFIGURATION
@@ -343,8 +343,11 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
  *   Define the maximum number of available UDP Sockets, and whether
  *   or not to include a checksum on packets being transmitted.
  */
-#define MAX_UDP_SOCKETS     (8u)
-//#define UDP_USE_TX_CHECKSUM       // This slows UDP TX performance by nearly 50%, except when using the ENCX24J600 or PIC32MX6XX/7XX, which have a super fast DMA and incurs virtually no speed pentalty.
+#define MAX_UDP_SOCKETS         (10u)
+#define UDP_USE_TX_CHECKSUM     // This slows UDP TX performance by nearly 50%, 
+                                // except when using the ENCX24J600 or 
+                                // PIC32MX6XX/7XX, which have a super fast DMA 
+                                // and incurs virtually no speed penalty.
 
 /* Berkeley API Sockets Configuration
  *   Note that each Berkeley socket internally uses one TCP or UDP socket
@@ -354,7 +357,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
  *   (i.e. sizeof(TCPSocketInitializer)/sizeof(TCPSocketInitializer[0])).
  *   This define has no effect if STACK_USE_BERKELEY_API is not defined and
  *   Berkeley Sockets are disabled.  Set this value as low as your application
- *   requires to avoid waisting RAM.
+ *   requires to avoid wasting RAM.
  */
 #define BSD_SOCKET_COUNT (5u)
 
@@ -406,7 +409,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
     #define HTTPS_PORT              (443u)
 
     // Define the maximum data length for reading cookie and GET/POST arguments (bytes)
-    #define HTTP_MAX_DATA_LEN       (100u)
+    #define HTTP_MAX_DATA_LEN       (1024u)
 
     // Define the minimum number of bytes free in the TX FIFO before executing callbacks
     #define HTTP_MIN_CALLBACK_FREE  (16u)

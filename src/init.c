@@ -9,6 +9,7 @@
 #include "tcpip/tcpip.h"
 #include "ksz8895.h"
 #include "init.h"
+#include "can.h"
 
 
 //==============================================================================
@@ -220,6 +221,11 @@ static void InitTCPIPStack()
     return;
 }
 
+static void InitCAN( void )
+{
+    CANInit();
+}
+
 //==============================================================================
 
 void InitBoard()
@@ -230,6 +236,7 @@ void InitBoard()
     InitTMR();
     InitSPI();
     InitINT();
+    InitCAN();
 
     // Initialize external hardware peripherals.
     KSZ8895Init();

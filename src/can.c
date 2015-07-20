@@ -1,14 +1,9 @@
 
 
 
+#include "can.h"
 
 
-
-
-#include <xc.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
 
 
@@ -31,7 +26,7 @@
 // Therefore, the total message allocation size is:
 //  = ( 4 words * 36 ) + ( 2 words * 2 ) = 148 words
 //
-uint32_t can_msg_buf[ 148 ];
+static uint32_t can_msg_buf[ 148 ];
 
 // ??? INCLUDE #include <kmem.h> INSTEAD ???
 /* 
@@ -43,33 +38,9 @@ typedef unsigned long _paddr_t; /* a physical address */
 #define PA_TO_KVA0(pa)	((void *) ((pa) | 0x80000000))
 #define PA_TO_KVA1(pa)	((void *) ((pa) | 0xa0000000))
 
-
-
-typedef enum
-{
-    CAN_TX_MSG_SERVO_CMD,
-    CAN_TX_MSG_NODE_STATUS,
-    CAN_TX_MSG_NODE_VER,
-    CAN_TX_MSG_CFG_WRITE_REQ,
-    CAN_TX_MSG_CFG_READ_REQ,
-    
-    CAN_TX_MSG_NUM_OF
-    
-} CAN_TX_MSG_TYPE_E;
-
 #define CAN_FIFOCON_TXREQ_MASK      0x00000008
 #define CAN_FIFOCON_UINC_MASK       0x00002000
 #define CAN_FIFOINT_TXNFULLIF_MASK  0x00000400
-
-// List of received messages.
-typedef enum
-{
-    CAN_RX_MSG_CFG_WRITE_RESP,
-    CAN_RX_MSG_CFG_READ_RESP,
-    
-    CAN_RX_MSG_NUM_OF
-    
-} CAN_RX_MSG_TYPE_E;
 
 #define CAN_FIFOINT_RXNEMPTYIF_MASK 0x00000001
 
@@ -89,12 +60,12 @@ void CANInit( void )
     // configured and set here ???
     //
     // NEED TO SET (I.E. LOGIC-HIGH) 'CAN_EN' (I.E. PIN RB12) TO ENABLE TRANSCEIVER.
-    
+
     // CAN_EN transceiver pin (pin 27) configuration
     AD1PCFGbits.PCFG12  = 1;    // AN12: Analog input pin in digital mode.
     ODCBbits.ODCB12     = 0;    // RB12: Normal output (i.e. not open-drain)
     TRISBbits.TRISB12   = 0;    // RB12: Output
-    LATBbits.LATB12     = 1;    // RB12: Logic High
+    LATBbits.LATB12     = 1;    // RB12: Logic HigH
     
     // CAN2 transmit pin (pin 21) configuration
     AD1PCFGbits.PCFG8   = 1;    // AN8: Analog input pin in digital mode.
@@ -102,6 +73,10 @@ void CANInit( void )
     
     // CAN2 Receive pin (pin 29) configuration
     AD1PCFGbits.PCFG14  = 1;    // AN14: Analog input pin in digital mode.
+    TRISBbits.TRISB14 = 1; 
+    
+    // Enable the CAN2 module.
+    C2CONbits.ON = 1;
     
     // Request hardware configuration mode and wait for entry.
     C2CONbits.REQOP = 0b100;
@@ -206,7 +181,7 @@ void CANInit( void )
     
     // Request hardware normal mode and wait for entry.
     C2CONbits.REQOP = 0;
-    while(C2CONbits.OPMOD != 0);
+    while( C2CONbits.OPMOD != 0 );
 }
 
 
@@ -431,7 +406,7 @@ static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, u
         
         // CAN_TX_MSG_CFG_WRITE_REQ
         {
-            6,              // data_len
+            0,                  // data_len     - Variable length, set during run-time.
             
             {
                 {
@@ -445,7 +420,7 @@ static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, u
         
         // CAN_TX_MSG_CFG_READ_REQ
         {
-            0,              // data_len     - Variable, special case treated with execution.
+            2,                  // data_len  
             
             {
                 {
@@ -487,6 +462,11 @@ static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, u
     // Populate the hardware header format with the CAN ID.
     tx_hw_header.sid = can_id.id_hi;
     tx_hw_header.eid = can_id.id_lo;
+    tx_hw_header.dlc = tx_can_data[ tx_msg_type ].data_len;
+            
+    //
+    // TODO: SET LENGTH OF WRITE REQ MESSAGE WHICH IS VARIABLE.
+    //
     
     // Copy the hardware header into the transmit buffer.
     msg_buf[ 0 ] = tx_hw_header.data_u32[ 0 ];

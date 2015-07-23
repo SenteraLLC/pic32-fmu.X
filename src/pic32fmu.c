@@ -11,6 +11,7 @@
 #include "init.h"
 #include "vn100.h"
 #include "oemstar.h"
+#include "fmucomm.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -36,6 +37,8 @@ int main()
         // Acquire sensor data. -------------------------------------
         VN100Task();
         OEMStarTask();
+        
+        FMUCommTask();
         
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling

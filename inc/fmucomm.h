@@ -8,33 +8,22 @@
 #define	FMUCOMM_H
 
 #include "stdtypes.h"
-
+#include "stdbool.h"
 
 // Typedefs ====================================================================
 
 typedef enum
 {
-    FMUCOMM_TYPE_HOST_HEARTBEAT     = 0x00,     // Host to FMU
-    FMUCOMM_TYPE_CTRL_SURFACE_CMD   = 0x01,     // Host to FMU
-    FMUCOMM_TYPE_HOST_EXCEPTION     = 0x7F,     // Host to FMU
-    FMUCOMM_TYPE_FMU_HEARTBEAT      = 0x80,     // FMU to Host
-    FMUCOMM_TYPE_IMU_DATA           = 0x81,     // FMU to Host
-    FMUCOMM_TYPE_GPS_DATA           = 0x82,     // FMU to Host
-    FMUCOMM_TYPE_AIR_DATA           = 0x83,     // FMU to Host
-    FMUCOMM_TYPE_CTRL_SURFACE_DATA  = 0x84,     // FMU to Host
-    FMUCOMM_TYPE_FMU_EXCEPTION      = 0xFF,     // FMU to Host
+    FMUCOMM_TYPE_HOST_HEARTBEAT,      // Host to FMU
+    FMUCOMM_TYPE_CTRL_SURFACE_CMD,    // Host to FMU
+    FMUCOMM_TYPE_HOST_EXCEPTION,      // Host to FMU
+    FMUCOMM_TYPE_FMU_HEARTBEAT,       // FMU to Host
+    FMUCOMM_TYPE_IMU_DATA,            // FMU to Host
+    FMUCOMM_TYPE_GPS_DATA,            // FMU to Host
+    FMUCOMM_TYPE_AIR_DATA,            // FMU to Host
+    FMUCOMM_TYPE_CTRL_SURFACE_DATA,   // FMU to Host
+    FMUCOMM_TYPE_FMU_EXCEPTION,       // FMU to Host
 } FMUCOMM_TYPE_E;
-
-typedef struct
-{
-    uint8_t  header0;
-    uint8_t  header1;
-    uint8_t  header2;
-    FMUCOMM_TYPE_E type;
-    uint16_t length;
-    uint8_t  payload;
-    uint16_t crc;
-} FMUCOMM_PKT;
 
 typedef struct
 {
@@ -66,20 +55,25 @@ typedef struct
     int16_t  boardTemp;     // Board temperature in 1e2 degrees Celsius.
 } FMUCOMM_FMU_HEARTBEAT_PKT;
 
-typedef struct
+typedef struct __attribute__ ((packed)) 
 {
-    uint64_t fmuTime;       // FMU timestamp in nanoseconds.
+    uint64_t fmuTime;       // FMU timestamp in microseconds.
     uint16_t imuType;       // IMU type: 0 = VN-100, 1 = MPU-9150
-    uint16_t imuValid;      // Set as 1 if data is valid, 0 otherwise.
-                            //   Bit 0: Mag
-                            //   Bit 1: Accel
-                            //   Bit 2: Gyro
-                            //   Bit 3: Temp
-                            //   Bit 4: Press
-                            //   Bit 5: AttitudeBit 2: Gyro
-                            //   Bit 6-15: Reserved
-    uint64_t timeStartup;   // Time since IMU startup.
-    uint64_t timeSyncIn;    // Time since last IMU sync pulse trigger.
+    
+    struct
+    {
+        uint16_t mag    :  1;   // bits       0
+        uint16_t accel  :  1;   // bits       1
+        uint16_t gyro   :  1;   // bits       2
+        uint16_t temp   :  1;   // bits       3
+        uint16_t press  :  1;   // bits       4
+        uint16_t att    :  1;   // bits       5
+        uint16_t        : 10;   // bits  6 - 15 (reserved)
+        
+    } imuValid;             // Set as 1 if data is valid, 0 otherwise.
+
+    uint32_t imuTimeSyncIn; // Elapsed time between last IMU sync pulse trigger
+                            // and sampling of IMU measurements.
     float    magX;          // Uncompensated magnetic X-axis in Gauss.
     float    magY;          // Uncompensated magnetic Y-axis in Gauss.
     float    magZ;          // Uncompensated magnetic Z-axis in Gauss.
@@ -91,10 +85,13 @@ typedef struct
     float    gyroZ;         // Uncompensated angular rate Z-axis in rad/s.
     float    temp;          // IMU temperature in degrees Celsius.
     float    pressure;      // Barometric pressure in kPa.
+    
+    uint32_t attTimeSyncIn; // Elapsed time between last IMU sync pulse trigger
+                            // and sampling of attitude measurements.
     float    yaw;           // Estimated yaw attitude in degrees.
     float    pitch;         // Estimated pitch attitude in degrees.
     float    roll;          // Estimated roll attitude in degrees.
-} FMUCOMM_IMU_DATA_PKT;
+} FMUCOMM_IMU_DATA;
 
 typedef struct
 {
@@ -130,7 +127,7 @@ typedef struct
 
 void FMUCommTask();
 
-
+bool FMUCommSet( FMUCOMM_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen );
 
 #endif	/* FMUCOMM_H */
 

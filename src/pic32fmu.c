@@ -34,11 +34,14 @@ int main()
         // Low-level communication tasks. ---------------------------
         SPITask();
 
+        // This task reads UDP data for processing; therefore this task
+        // must be executed in the software cycle before any function
+        // which gets UDP data.
+        FMUCommTask();
+        
         // Acquire sensor data. -------------------------------------
         VN100Task();
         OEMStarTask();
-        
-        FMUCommTask();
         
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling

@@ -1,49 +1,166 @@
-/*******************************************************************************
-/
-/   Filename:   fmucomm.h
-/
-*******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+/// @file
+/// @brief 
+////////////////////////////////////////////////////////////////////////////////
 
-#ifndef FMUCOMM_H
-#define	FMUCOMM_H
+#ifndef FMUCOMM_H_
+#define	FMUCOMM_H_
 
-#include "stdtypes.h"
-#include "stdbool.h"
+// *****************************************************************************
+// ************************** System Include Files *****************************
+// *****************************************************************************
 
-// Typedefs ====================================================================
+#include <xc.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
+// *****************************************************************************
+// ************************** User Include Files *******************************
+// *****************************************************************************
+
+// *****************************************************************************
+// ************************** Defines ******************************************
+// *****************************************************************************
+
+// Host -> FMU messages.
 typedef enum
 {
-    FMUCOMM_TYPE_HOST_HEARTBEAT,      // Host to FMU
-    FMUCOMM_TYPE_CTRL_SURFACE_CMD,    // Host to FMU
-    FMUCOMM_TYPE_HOST_EXCEPTION,      // Host to FMU
-    FMUCOMM_TYPE_FMU_HEARTBEAT,       // FMU to Host
-    FMUCOMM_TYPE_IMU_DATA,            // FMU to Host
-    FMUCOMM_TYPE_GPS_DATA,            // FMU to Host
-    FMUCOMM_TYPE_AIR_DATA,            // FMU to Host
-    FMUCOMM_TYPE_CTRL_SURFACE_DATA,   // FMU to Host
-    FMUCOMM_TYPE_FMU_EXCEPTION,       // FMU to Host
-} FMUCOMM_TYPE_E;
+    FMUCOMM_TYPE_HOST_HEARTBEAT,
+    FMUCOMM_TYPE_CTRL_SURFACE_CMD,
+    FMUCOMM_TYPE_GPS_CMD,
+    FMUCOMM_TYPE_HOST_EXCEPTION,
+    
+    FMUCOMM_RX_TYPE_MAX,
+            
+} FMUCOMM_RX_TYPE_E;
+
+// FMU -> Host messages.
+typedef enum
+{   
+    FMUCOMM_TYPE_FMU_HEARTBEAT,     
+    FMUCOMM_TYPE_IMU_DATA,          
+    FMUCOMM_TYPE_GPS_DATA,          
+    FMUCOMM_TYPE_AIR_DATA,          
+    FMUCOMM_TYPE_CTRL_SURFACE_DATA, 
+    FMUCOMM_TYPE_FMU_EXCEPTION,     
+            
+} FMUCOMM_TX_TYPE_E;
+
+
+//
+// HOST -> FMU -----------------------------------------------------------------
+//
+
+//typedef struct
+//{
+//    uint32_t fwVersion;     // Firmware version ID.
+//    uint32_t hwVersion;     // Hardware version ID.
+//    uint32_t serialNum;     // Serial number.
+//    uint32_t msUptime;      // System uptime in milliseconds.
+//} FMUCOMM_HOST_HEARTBEAT_PKT;
+//
+//typedef struct
+//{
+//    uint8_t surfaceID;      // Control surface ID.
+//    int16_t position;       // Control surface position in 1e3 radians.
+//} FMUCOMM_CTRL_SURFACE_CMD_PL;
+//
+//typedef struct
+//{
+//    FMUCOMM_CTRL_SURFACE_CMD_PL pl[ 20 ];
+//    uint8_t                     plCnt;
+//            
+//} FMUCOMM_CTRL_SURFACE_CMD_PKT;
+//
+//typedef struct
+//{
+//    uint8_t GPSData[1024];
+//    uint8_t GPSLen;
+//    
+//} FMUCOMM_HOST_GPS_CMD_PKT;
+//
+//typedef struct
+//{
+//    uint8_t debugData[1024];
+//    uint8_t debugLen;
+//    
+//} FMUCOMM_HOST_EXCEPTION_PKT;
 
 typedef struct
 {
+    uint8_t   header0;
+    uint8_t   header1;
+    uint8_t   header2;
+    uint8_t   type;
+    
+    union
+    {
+        struct
+        {
+            uint8_t length_lsb;
+            uint8_t length_msb;
+        };
+        
+        uint16_t length;
+    };
+    
+    union
+    {
+        struct
+        {
+            uint8_t crc_lsb;
+            uint8_t crc_msb;
+        };
+        
+        uint16_t crc;
+    };
+    
+} FMUCOMM_PKT_WRAP;
+
+typedef struct
+{
+    FMUCOMM_PKT_WRAP wrap;
+    
     uint32_t fwVersion;     // Firmware version ID.
     uint32_t hwVersion;     // Hardware version ID.
     uint32_t serialNum;     // Serial number.
     uint32_t msUptime;      // System uptime in milliseconds.
+    
 } FMUCOMM_HOST_HEARTBEAT_PKT;
 
 typedef struct
 {
-    uint8_t surfaceID;      // Control surface ID.
-    int16_t position;       // Control surface position in 1e3 radians.
-    //... (repeated for additional surfaces)
+    FMUCOMM_PKT_WRAP wrap;
+    
+    struct
+    {
+        uint8_t  ID;
+        uint16_t pos;
+        
+    } ctrlSurface[ 20 ];
+            
 } FMUCOMM_CTRL_SURFACE_CMD_PKT;
 
 typedef struct
 {
+    FMUCOMM_PKT_WRAP wrap;
+    
+    uint8_t GPSData[1024];
+    
+} FMUCOMM_HOST_GPS_CMD_PKT;
+
+typedef struct
+{
+    FMUCOMM_PKT_WRAP wrap;
+    
     uint8_t debugData[1024];
+    
 } FMUCOMM_HOST_EXCEPTION_PKT;
+
+//
+// FMU -> HOST -----------------------------------------------------------------
+//
 
 typedef struct
 {
@@ -53,6 +170,7 @@ typedef struct
     uint32_t msUptime;      // System uptime in milliseconds.
     uint16_t inputVoltage;  // Input voltage in millivolts.
     int16_t  boardTemp;     // Board temperature in 1e2 degrees Celsius.
+    
 } FMUCOMM_FMU_HEARTBEAT_PKT;
 
 typedef struct __attribute__ ((packed)) 
@@ -122,12 +240,19 @@ typedef struct
     uint8_t debugData[1024];
 } FMUCOMM_FMU_EXCEPTION_PKT;
 
+// *****************************************************************************
+// ************************** Declarations *************************************
+// *****************************************************************************
 
-// Function Prototypes =========================================================
+// *****************************************************************************
+// ************************** Function Prototypes ******************************
+// *****************************************************************************
 
 void FMUCommTask();
 
-bool FMUCommSet( FMUCOMM_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen );
+bool FMUCommSet( FMUCOMM_TX_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen );
 
-#endif	/* FMUCOMM_H */
+bool FMUCommGet( FMUCOMM_RX_TYPE_E pktType, void** pkt_pp );
+
+#endif	// FMUCOMM_H_
 

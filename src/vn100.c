@@ -225,7 +225,7 @@ static bool VN100WriteReg( VN100_REG_E reg, void* regData );
 // ************************** Global Functions *********************************
 // *****************************************************************************
 
-void VN100Task()
+void VN100Task( void )
 {
     static enum
     {

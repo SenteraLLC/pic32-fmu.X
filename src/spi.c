@@ -115,14 +115,18 @@ int SPIXfer(SPI_XFER *xfer)
         FAILURE = 1,
     } spiXferStatus = FAILURE;
     
+    // Non-NULL data supplied ?
     if (xfer != 0)
     {
+        // Process data based on SPI port.
         switch (xfer->port)
         {
             case SPI_PORT_SPI2:
             {
+                // SPI2 is currently not transferring data ?
                 if (spi2Xfer == 0)
                 {
+                    // Set up buffer for transfer.
                     spi2Xfer = xfer;            // Copy data pointer.
                     xfer->xferDone = 0;         // Clear transfer done flag.
                     spiXferStatus = SUCCESS;    // Success.

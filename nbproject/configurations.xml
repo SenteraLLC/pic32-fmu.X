@@ -36,7 +36,7 @@
       <itemPath>inc/ksz8895.h</itemPath>
       <itemPath>inc/softspi.h</itemPath>
       <itemPath>inc/fmucomm.h</itemPath>
-      <itemPath>inc/uart.h</itemPath>
+      <itemPath>inc/util.h</itemPath>
     </logicalFolder>
     <logicalFolder name="f1" displayName="HTTP Files" projectFiles="true">
       <itemPath>http/favicon.ico</itemPath>
@@ -84,7 +84,7 @@
       <itemPath>src/softspi.c</itemPath>
       <itemPath>src/fmucomm.c</itemPath>
       <itemPath>src/exceptions.c</itemPath>
-      <itemPath>src/uart.c</itemPath>
+      <itemPath>src/util.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

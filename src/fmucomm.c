@@ -27,7 +27,6 @@
 //  - Payload Length    2 bytes
 //  - CRC               2 bytes
 //
-//#define FMUCOMM_HEADER_SIZE 6
 #define FMUCOMM_WRAP_SIZE   8
 
 typedef struct
@@ -55,7 +54,7 @@ typedef struct
 
 // *****************************************************************************
 // ************************** Definitions **************************************
-// ************************************R*****************************************
+// *****************************************************************************
 
 static FMUCOMM_HOST_HEARTBEAT_PKT   FMUCommHostHeartbeatPkt;
 static FMUCOMM_CTRL_SURFACE_CMD_PKT FMUCommCtrlSurfaceCmdPkt;
@@ -80,10 +79,13 @@ static FMUCOMM_TX_CFG fmucomm_tx_cfg [ ] =
     { 'U', 'M', 'N', 0xFF },  // FMUCOMM_TYPE_FMU_EXCEPTION     
 };
 
-// Client IP Address (239.192.143.140) in big-endian.
-static const uint32_t   clientIPAddr = 0x8C8FC0EF;
+// Client IP Address (192.168.143.11) in big-endian.
+static const uint32_t   clientIPAddr = 0x0B8FA8C0;
 static const UDP_PORT   clientPort   = 55455;
 static       UDP_SOCKET clientSocket = INVALID_UDP_SOCKET;
+
+static const UDP_PORT   servertPort  = 55455;
+static       UDP_SOCKET serverSocket = INVALID_UDP_SOCKET;
 
 static bool fmucomm_rx_valid[ FMUCOMM_RX_TYPE_MAX ] =
 {
@@ -115,14 +117,22 @@ void FMUCommTask()
     {
         case SM_INIT:
         {
-            // Open up the port. Unicast IP Address
+            // Open a client socket for transmission of UDP data.
             clientSocket = UDPOpenEx( clientIPAddr,
                                       UDP_OPEN_IP_ADDRESS,
                                       0,
                                       clientPort );
             
-            // Port opened successfully ?
-            if( clientSocket != INVALID_UDP_SOCKET )
+            // Open a server socket for reception of UDP data.
+            serverSocket = UDPOpenEx( 0, 
+                                      UDP_OPEN_SERVER,
+                                      servertPort,
+                                      0 );
+            
+            
+            // Sockets opened successfully ?
+            if( ( clientSocket != INVALID_UDP_SOCKET ) &&
+                ( serverSocket != INVALID_UDP_SOCKET ) )
             {
                 FMUCommTaskState++;
             }
@@ -258,10 +268,10 @@ void FMUCommRead( void )
     uint16_t udp_byte_cnt;
     uint16_t udp_byte_idx;
     
-    // FMU socket is open for communication ?
-    if( UDPIsOpened( clientSocket ) == true )
+    // FMU socket is open for reception ?
+    if( UDPIsOpened( serverSocket ) == true )
     {
-        udp_byte_cnt = UDPIsGetReady( clientSocket );
+        udp_byte_cnt = UDPIsGetReady( serverSocket );
         
         // Socket has received a segment ?
         if( udp_byte_cnt != 0 )
@@ -269,7 +279,7 @@ void FMUCommRead( void )
             // Increment through the received UDP bytes.
             for( udp_byte_idx = 0;
                  udp_byte_idx < udp_byte_cnt;
-                 udp_byte_cnt++ )
+                 udp_byte_idx++ )
             {
                 //
                 // Note: Return value of function 'UDPGet' is not checked since 
@@ -342,6 +352,10 @@ void FMUCommRead( void )
                                 type_valid = true;
 
                                 UDPState++;
+                                
+                                // Exit for-loop so index of configuration
+                                // data is maintained.
+                                break;
                             }
                         }
                         

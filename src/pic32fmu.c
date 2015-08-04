@@ -12,6 +12,7 @@
 #include "vn100.h"
 #include "oemstar.h"
 #include "fmucomm.h"
+#include "uart.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"

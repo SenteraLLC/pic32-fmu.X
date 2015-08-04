@@ -23,6 +23,21 @@
 // ************************** Defines ******************************************
 // *****************************************************************************
 
+typedef struct
+{
+    uint8_t  data_p[ 128 ];     // NOTE: NEED TO VERIFY THAT THIS SIZE IS LARGE ENOUGH TO NEVER OVERFLOW WITH THE OEMSTAR OPERATION.
+    uint16_t data_len;
+    
+} UART_RX_BUF_S;
+
+typedef struct
+{
+    uint8_t* data_p;
+    uint16_t data_len;
+    bool     tx_done;
+    
+} UART_TX_BUF_S;
+
 // *****************************************************************************
 // ************************** Declarations *************************************
 // *****************************************************************************
@@ -30,5 +45,12 @@
 // *****************************************************************************
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
+
+void UARTInit( void );
+void UARTStartup( void );
+void UARTTask( void );
+
+const UART_RX_BUF_S* UARTGet( void );
+bool UARTSet( UART_TX_BUF_S* tx_buf_p );
 
 #endif	// UART_H_

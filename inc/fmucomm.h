@@ -85,8 +85,16 @@ typedef struct
 
 typedef struct
 {
+    bool valid;
+    
     FMUCOMM_PKT_WRAP wrap;
     
+    uint8_t* pl_p;
+    
+} FMUCOMM_HOST_PKT;
+
+typedef struct
+{
     union
     {
         struct
@@ -100,12 +108,10 @@ typedef struct
         uint8_t pl_u8[ 16 ];
     };
     
-} FMUCOMM_HOST_HEARTBEAT_PKT;
+} FMUCOMM_HOST_HEARTBEAT_PL;
 
 typedef struct
 {
-    FMUCOMM_PKT_WRAP wrap;
-    
     union
     {
         struct
@@ -118,12 +124,10 @@ typedef struct
         uint8_t pl_u8[ 60 ];
     };
             
-} FMUCOMM_CTRL_SURFACE_CMD_PKT;
+} FMUCOMM_CTRL_SURFACE_CMD_PL;
 
 typedef struct
-{
-    FMUCOMM_PKT_WRAP wrap;
-    
+{    
     union
     {
         uint8_t GPSData[ 1024 ];
@@ -131,12 +135,10 @@ typedef struct
         uint8_t pl_u8[ 1024 ];
     };
     
-} FMUCOMM_HOST_GPS_CMD_PKT;
+} FMUCOMM_HOST_GPS_CMD_PL;
 
 typedef struct
 {
-    FMUCOMM_PKT_WRAP wrap;
-    
     union
     {
         uint8_t debugData[ 1024 ];
@@ -144,7 +146,7 @@ typedef struct
         uint8_t pl_u8[ 1024 ];
     };
     
-} FMUCOMM_HOST_EXCEPTION_PKT;
+} FMUCOMM_HOST_EXCEPTION_PL;
 
 //
 // FMU -> HOST -----------------------------------------------------------------
@@ -240,7 +242,7 @@ void FMUCommTask();
 
 bool FMUCommSet( FMUCOMM_TX_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen );
 
-bool FMUCommGet( FMUCOMM_RX_TYPE_E pktType, void** pkt_wrap_pp, void** pkt_pl_pp );
+const FMUCOMM_HOST_PKT* FMUCommGet( FMUCOMM_RX_TYPE_E pktType );
 
 #endif	// FMUCOMM_H_
 

@@ -12,6 +12,7 @@
 // *****************************************************************************
 
 #include "uart.h"
+#include <sys/attribs.h>
 
 // *****************************************************************************
 // ************************** Defines ******************************************
@@ -26,6 +27,47 @@
 #define mUART_RX_CB_NEXT_IDX(x)    ( ( (x) + 1 ) & UART_RX_CB_LEN_MASK )
 #define mUART_RX_CB_PREV_IDX(x)    ( ( (x) + ( UART_RX_CB_LEN - 1 ) ) & UART_RX_CB_LEN_MASK )
 
+
+
+typedef struct
+{
+    UART_TX_BUF_S* buf[ UART_TX_FIFO_LEN ];
+    uint8_t        head_idx; // Index of data to output.
+    uint8_t        tail_idx; // Index of data to input - i.e. empty slot.
+    
+} UART_TX_FIFO_S;
+
+// NOTE: FIFO is maintained using a "keep one slot empty" method. 
+static UART_TX_FIFO_S tx_fifo =
+{
+    { NULL, NULL, NULL, NULL },
+    0,
+    0,
+};
+
+
+
+
+
+typedef struct
+{
+    UART_RX_BUF_S  cb[ UART_RX_CB_LEN ];
+    uint8_t        cb_idx;
+    
+} UART_RX_CB_S;
+
+static UART_RX_CB_S rx_cb =
+{
+    {
+        { { 0 }, 0 },
+        { { 0 }, 0 },
+        { { 0 }, 0 },
+        { { 0 }, 0 },
+    },
+    
+    0,
+};
+
 // *****************************************************************************
 // ************************** Definitions **************************************
 // *****************************************************************************
@@ -36,6 +78,9 @@ static uint16_t uart_err_cnt    = 0;
 // *****************************************************************************
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
+
+void UARTBufRx( void );
+void UARTBufTX( void );
 
 uint8_t UARTRead( uint8_t* data_p, uint8_t data_len );
 uint8_t UARTWrite( const uint8_t* data_p, uint8_t data_len );
@@ -76,44 +121,13 @@ void UARTInit( void )
 /// @note Alternate control flow from 'Init' is supplied for turning on the
 /// UART communication to manage software receiver buffer overflow. If a large
 /// amount of time exists between enabling the module and the first execution
-/// of 'Task', then the receiver software buffer will likely overflow and
+/// of 'Task', then the receiver hardware buffer will likely overflow and
 /// received data will be lost.
 void UARTStartup( void )
 {
     // Turn module on.
     U1MODEbits.ON = 0;
 }
-
-
-//
-// RX FUNCTIONS ////////////////////////////////////////////////////////////////
-//
-
-typedef struct
-{
-    uint8_t  data_p[ 128 ];
-    uint16_t data_len;
-    
-} UART_RX_BUF_S;
-
-typedef struct
-{
-    UART_RX_BUF_S  cb[ UART_RX_CB_LEN ];
-    uint8_t        cb_idx;
-    
-} UART_RX_CB_S;
-
-static UART_RX_CB_S rx_cb =
-{
-    {
-        { { 0 }, 0 },
-        { { 0 }, 0 },
-        { { 0 }, 0 },
-        { { 0 }, 0 },
-    },
-    
-    0,
-};
 
 /// @brief Manage receiver buffer for receiving of new data.
 ///
@@ -139,6 +153,23 @@ void UARTTask( void )
     rx_cb.cb_idx = cb_next_idx;
 }
 
+void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void ) 
+{
+    // Receiver caused interrupt ?
+    if( IFS0bits.U1RXIF == 1 )
+    {
+        // Service the receiver.
+        UARTBufRx();
+    }
+    
+    // Transmitter caused interrupt ?
+    if( IFS0bits.U1TXIF == 1 )
+    {
+        // Service the transmitter.
+        UARTBufTX();
+    }
+}
+
 /// @brief Return pointer to freshest received data available for processing.
 const UART_RX_BUF_S* UARTGet( void )
 {
@@ -152,8 +183,45 @@ const UART_RX_BUF_S* UARTGet( void )
     return ( &rx_cb.cb[ rx_cb_get_idx ] );
 }
 
-/// @note Called by ISR
-void UARTBufRx( void )  
+/// @brief Setup a buffer for transmission if space available.
+bool UARTSet( UART_TX_BUF_S* tx_buf_p )
+{
+    bool success = false;
+    
+    // Supplied buffer is valid ?
+    if( tx_buf_p != NULL )
+    {
+        // FIFO is not already full ?
+        if( mUART_TX_FIFO_NEXT_IDX( tx_fifo.tail_idx ) != tx_fifo.head_idx )
+        {
+            success = true;
+            
+            // Queue the buffer for transmission.
+            tx_fifo.buf[ tx_fifo.tail_idx ] = tx_buf_p;
+            
+            // Identify buffer transmission as incomplete.
+            tx_fifo.buf[ tx_fifo.tail_idx ]->tx_done = false;
+            
+            // Update FIFO control variable.
+            //
+            // Note: 'tail_idx' only modified by this function and update
+            // is atomic; therefore, no race condition exists.
+            //
+            tx_fifo.tail_idx = mUART_TX_FIFO_NEXT_IDX( tx_fifo.tail_idx );
+            
+            // Enable the transmit interrupt to send the buffered data.
+            IEC0bits.U1TXIE = 1;
+        }
+    }
+        
+    return success;
+}
+
+// *****************************************************************************
+// ************************** Static Functions *********************************
+// *****************************************************************************
+
+void UARTBufRx( void )
 {
     uint8_t read_cnt;
     
@@ -169,6 +237,10 @@ void UARTBufRx( void )
     }
     
     // Clear the interrupt flag.
+    //
+    // Note: this must be performed after the condition which caused the 
+    // interrupt (i.e. received data) is addressed.
+    //
     IFS0bits.U1RXIF = 0;
 }
 
@@ -229,75 +301,6 @@ uint8_t UARTRead( uint8_t* data_p, uint8_t data_len )
     return data_cnt;
 }
 
-
-
-
-
-
-//
-// TX FUNCTIONS ////////////////////////////////////////////////////////////////
-//
-
-
-typedef struct
-{
-    uint8_t* data_p;
-    uint16_t data_len;
-    bool     tx_done;
-    
-} UART_TX_BUF_S;
-
-typedef struct
-{
-    UART_TX_BUF_S* buf[ UART_TX_FIFO_LEN ];
-    uint8_t        head_idx; // Index of data to output.
-    uint8_t        tail_idx; // Index of data to input - i.e. empty slot.
-    
-} UART_TX_FIFO_S;
-
-// NOTE: FIFO is maintained using a "keep one slot empty" method. 
-static UART_TX_FIFO_S tx_fifo =
-{
-    { NULL, NULL, NULL, NULL },
-    0,
-    0,
-};
-
-
-/// @brief Setup a buffer for transmission if space available.
-bool UARTSet( UART_TX_BUF_S* tx_buf_p )
-{
-    bool success = false;
-    
-    // Supplied buffer is valid ?
-    if( tx_buf_p != NULL )
-    {
-        // FIFO is not already full ?
-        if( mUART_TX_FIFO_NEXT_IDX( tx_fifo.tail_idx ) != tx_fifo.head_idx )
-        {
-            success = true;
-            
-            // Queue the buffer for transmission.
-            tx_fifo.buf[ tx_fifo.tail_idx ] = tx_buf_p;
-            
-            // Identify buffer transmission as incomplete.
-            tx_fifo.buf[ tx_fifo.tail_idx ]->tx_done = false;
-            
-            // Update FIFO control variable.
-            //
-            // Note: 'tail_idx' only modified by this function and update
-            // is atomic; therefore, no race condition exists.
-            //
-            tx_fifo.tail_idx = mUART_TX_FIFO_NEXT_IDX( tx_fifo.tail_idx );
-            
-            // Enable the transmit interrupt to send the buffered data.
-            IEC0bits.U1TXIE = 1;
-        }
-    }
-        
-    return success;
-}
-
 /// @brief Write next chunk of data to be transmitted.
 ///
 /// @note  Executed in higher-priority thread than 'set'.
@@ -339,6 +342,10 @@ void UARTBufTX( void )
     }
     
     // Clear the interrupt flag.
+    //
+    // Note: this must be performed after the condition which caused the 
+    // interrupt (i.e. transmitter empty) is addressed.
+    //
     IFS0bits.U1TXIF = 0;
 }
 
@@ -362,7 +369,3 @@ uint8_t UARTWrite( const uint8_t* data_p, uint8_t data_len )
     
     return data_cnt;
 }
-
-// *****************************************************************************
-// ************************** Static Functions *********************************
-// *****************************************************************************

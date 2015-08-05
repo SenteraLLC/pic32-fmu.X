@@ -9,7 +9,7 @@ uint16_t utilCRC16( void* data_p, uint16_t data_len, uint16_t crc_start )
     uint16_t data_idx;
     uint16_t crc;
     
-    // Typecase input for processing.  Note: typecase to 8-bit type does not
+    // Typecast input for processing.  Note: typecase to 8-bit type does not
     // yield data alignment issues.
     data_u8_p = (uint8_t*) data_p;
     

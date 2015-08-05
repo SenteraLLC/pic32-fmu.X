@@ -109,13 +109,19 @@ void UARTInit( void )
     // Error %   = ( 116279 - 115200 ) / 115200
     //           = 0.94 %
     //
-    U1BRG = 42;
+    // U1BRG = 42;
+    U1BRG = 520;        // temporary 9600 rate.
+    
+    // Set U1Tx and U1Rx interrupts to priority '1' and sub-priority to '0'.
+    IPC6bits.U1IP = 1;
+    IPC6bits.U1IS = 0;
+    
+    // Clear the U1Tx and U1Rx interrupt flags.
+    IFS0bits.U1RXIF = 0;
+    IFS0bits.U1TXIF = 0;
     
     // Enable the receive interrupt
     IEC0bits.U1RXIE = 1;
-    
-    // Set U1Tx and U1RX interrupts to priority '1'.
-    IPC6bits.U1IP = 1;  
 }
 
 /// @note Alternate control flow from 'Init' is supplied for turning on the
@@ -126,7 +132,7 @@ void UARTInit( void )
 void UARTStartup( void )
 {
     // Turn module on.
-    U1MODEbits.ON = 0;
+    U1MODEbits.ON = 1;
 }
 
 /// @brief Manage receiver buffer for receiving of new data.

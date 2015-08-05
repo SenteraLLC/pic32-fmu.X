@@ -27,6 +27,11 @@ int main()
 {
     InitBoard();    // Initialize FMU processor and peripherals.
     
+    // INTEnableSystemMultiVectoredInt();
+    asm volatile ("ei");
+    
+    UARTStartup();
+    
     for (;;)        // Main program loop.
     {
         WDTCONSET = _WDTCON_WDTCLR_MASK;        // Clear watchdog timer.

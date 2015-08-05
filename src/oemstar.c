@@ -60,7 +60,7 @@ void OEMStarTask()
 static void OEMStarCmdFwd( void )
 {
     static uint8_t       uart_tx_data[ 1024 ];
-    static UART_TX_BUF_S uart_tx_buf = { &uart_tx_data[ 0 ] , 0, false };
+    static UART_TX_BUF_S uart_tx_buf = { &uart_tx_data[ 0 ] , 0, true };
     
     bool setSuccess;
     
@@ -165,7 +165,7 @@ static void OEMStarLogFwd( void )
                                      &OEMStarRxBuf.data_p[ 0 ], 
                                      OEMStarRxBuf.data_len );
             
-            // Ethernet queued successfully ?
+            // Ethernet data queued successfully ?
             if( setSuccess == true )
             {
                 // Clear the module buffer length to reset buffer.

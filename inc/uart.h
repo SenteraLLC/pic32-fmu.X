@@ -23,9 +23,13 @@
 // ************************** Defines ******************************************
 // *****************************************************************************
 
+#define UART_RX_BUF_DATA_LEN 1024
+
+// Note: Receiver data buffer size must be scaled to accommodate maximum amount
+// of received data for the execution cycle time.
 typedef struct
 {
-    uint8_t  data_p[ 128 ];     // NOTE: NEED TO VERIFY THAT THIS SIZE IS LARGE ENOUGH TO NEVER OVERFLOW WITH THE OEMSTAR OPERATION.
+    uint8_t  data[ UART_RX_BUF_DATA_LEN ];     // NOTE: NEED TO VERIFY THAT THIS SIZE IS LARGE ENOUGH TO NEVER OVERFLOW WITH THE OEMSTAR OPERATION.
     uint16_t data_len;
     
 } UART_RX_BUF_S;

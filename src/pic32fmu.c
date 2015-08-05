@@ -39,6 +39,7 @@ int main()
 
         // Low-level communication tasks. ---------------------------
         SPITask();
+        UARTTask();  // NOTE: Task must occur before any function in software cycle which used received UART data.
 
         // This task reads UDP data for processing; therefore this task
         // must be executed in the software cycle before any function

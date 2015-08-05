@@ -33,7 +33,7 @@ static bool oemstar_tx_err_latch      = false;
 // *****************************************************************************
 
 static void OEMStarCmdFwd( void );
-static void OEMStarLogFwd( void );
+static void OEMStarRspFwd( void );
 
 // *****************************************************************************
 // ************************** Global Functions *********************************
@@ -44,8 +44,9 @@ void OEMStarTask()
     // Forward received Ethernet messages (i.e. Commands) to the GPS receiver.
     OEMStarCmdFwd();
     
-    // Forward received GPS receiver messages (i.e. Logs) to the Ethernet.
-    OEMStarLogFwd();
+    // Forward received GPS receiver messages (i.e. Responses and Logs) to the
+    // Ethernet.
+    OEMStarRspFwd();
 }
 
 // *****************************************************************************
@@ -108,11 +109,11 @@ static void OEMStarCmdFwd( void )
     }
 }
 
-static void OEMStarLogFwd( void )
+static void OEMStarRspFwd( void )
 {
     struct
     {
-        uint8_t  data_p[ 1024 ];
+        uint8_t  data[ 1024 ];
         uint16_t data_len;
     } static OEMStarRxBuf;
     
@@ -129,9 +130,11 @@ static void OEMStarLogFwd( void )
         if( ( 1024 - OEMStarRxBuf.data_len ) >= uartRxBuf->data_len )
         {
             // Copy UART data into module buffer.
-            memcpy( &OEMStarRxBuf.data_p[ 0 ],
-                    &uartRxBuf->data_p[ 0 ],
+            memcpy( &OEMStarRxBuf.data[ 0 ],
+                    &uartRxBuf->data[ 0 ],
                     uartRxBuf->data_len );
+            
+            OEMStarRxBuf.data_len += uartRxBuf->data_len;
         }
         else
         {
@@ -148,21 +151,21 @@ static void OEMStarLogFwd( void )
         // greater than 3/4 full ?
         //
         // Note: No UART data being received for an execution cycle gives
-        // indication than an entire log was received (i.e. a log boundary).
-        // An Ethernet packet is populated to segment logs into Ethernet
-        // packets.
+        // indication than an entire response was received (i.e. a response 
+        // boundary). An Ethernet packet is populated to segment responses into 
+        // Ethernet packets.
         //
         // Note: An Ethernet packet is transmitted when the internal module
         // buffer is 3/4 full.  This is performed so than internal storage does
-        // not overflow.  Segmenting of logs to Ethernet packets is unlikely 
-        // in this case.
+        // not overflow.  Segmenting of responses to Ethernet packets is 
+        // unlikely in this case.
         //
         if( ( uartRxBuf->data_len   == 0   ) ||
             ( OEMStarRxBuf.data_len >  768 ) )
         {
             // Queue Ethernet data for transmission.
             setSuccess = FMUCommSet( FMUCOMM_TYPE_GPS_DATA, 
-                                     &OEMStarRxBuf.data_p[ 0 ], 
+                                     &OEMStarRxBuf.data[ 0 ], 
                                      OEMStarRxBuf.data_len );
             
             // Ethernet data queued successfully ?

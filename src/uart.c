@@ -172,6 +172,11 @@ void UARTTask( void )
 {
     uint8_t cb_next_idx;
     
+    // Flush any remaining data into the reception buffer before updating
+    // the circular buffer.  Trigger the Receiver interrupt to read any
+    // remaining UART data.
+    IFS0bits.U1RXIF = 1;
+    
     cb_next_idx = mUART_RX_CB_NEXT_IDX( uart_rx_cb.buf_idx );
     
     // Setup next circular buffer index for receiving data.

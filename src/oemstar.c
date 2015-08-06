@@ -15,6 +15,7 @@
 #include "oemstar.h"
 #include "fmucomm.h"
 #include "uart.h"
+#include "coretime.h"
 
 // *****************************************************************************
 // ************************** Defines ******************************************
@@ -117,6 +118,8 @@ static void OEMStarRspFwd( void )
         uint16_t data_len;
     } static OEMStarRxBuf;
     
+    static uint32_t rx_time_us;
+    
     const UART_RX_BUF_S* uartRxBuf;
           bool           setSuccess;
     
@@ -126,6 +129,9 @@ static void OEMStarRspFwd( void )
     // UART data received ?
     if( uartRxBuf->data_len != 0 )
     {
+        // Record time data is received.
+        rx_time_us = CoreTime32usGet();
+        
         // Module buffer contains available space for UART data ?
         if( ( 1024 - OEMStarRxBuf.data_len ) >= uartRxBuf->data_len )
         {
@@ -142,26 +148,38 @@ static void OEMStarRspFwd( void )
             // data.
             oemstar_rx_overflow_latch = true;
         }
+        
+        Nop();
     }
     
     // Module buffer contains data ?
     if( OEMStarRxBuf.data_len != 0 )
     {
-        // No UART data received for execution cycle, or module buffer is
+        // No UART data received for 1ms, or module buffer is
         // greater than 3/4 full ?
         //
-        // Note: No UART data being received for an execution cycle gives
-        // indication than an entire response was received (i.e. a response 
-        // boundary). An Ethernet packet is populated to segment responses into 
-        // Ethernet packets.
+        // Note: 1ms timeout derived from data transmission rate and hardware
+        // buffering configuration.
+        //  UART data byte:
+        //      - 1 start bit
+        //      - 8 data bits
+        //      - 1 stop bit
+        //  Hw configuration:
+        //      - 115200 nominal transfer rate.
+        //      - 6 byte deep buffer before servicing.
+        // Therefore, with 100% UART receiver utilization, the OEMStar 
+        // application module will receive fresh data every:
+        //  - (1/115200) * 10 * 6 = 0.52 ms.
+        // Additional margin is added to the timeout to treat non-ideal
+        // conditions.
         //
         // Note: An Ethernet packet is transmitted when the internal module
         // buffer is 3/4 full.  This is performed so than internal storage does
         // not overflow.  Segmenting of responses to Ethernet packets is 
         // unlikely in this case.
         //
-        if( ( uartRxBuf->data_len   == 0   ) ||
-            ( OEMStarRxBuf.data_len >  768 ) )
+        if( ( CoreTime32usGet() - rx_time_us > 1000 ) ||
+            ( OEMStarRxBuf.data_len          > 768  ) )
         {
             // Queue Ethernet data for transmission.
             setSuccess = FMUCommSet( FMUCOMM_TYPE_GPS_DATA, 
@@ -176,4 +194,6 @@ static void OEMStarRspFwd( void )
             }
         }
     }
+    
+    Nop();
 }

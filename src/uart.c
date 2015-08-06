@@ -53,7 +53,7 @@ typedef struct
 // Structure of circular buffer for receiving data.
 typedef struct
 {
-    UART_RX_BUF_S  buf_arr[ UART_RX_CB_LEN ];   // Array of reception buffers.
+    UART_RX_BUF_S  buf_arr[ 4 ];   // Array of reception buffers.
     uint8_t        buf_idx;                     // Current array index for receiving data.
     
 } UART_RX_CB_S;
@@ -69,17 +69,17 @@ static bool uart_oerr_latch = false;
 static uint16_t uart_err_cnt = 0;
 
 // Circular buffer for receiving UART data.
-static UART_RX_CB_S uart_rx_cb =
-{
-    {
-        { { 0 }, 0 },   // Start buffer as empty.
-        { { 0 }, 0 },   // Start buffer as empty.
-        { { 0 }, 0 },   // Start buffer as empty.
-        { { 0 }, 0 },   // Start buffer as empty.
-    },
-    
-    0,                  // Buffer index to start of circular buffer.
-};
+static UART_RX_CB_S uart_rx_cb; // =
+//{
+////    {
+////        { { 0 }, 0 },   // Start buffer as empty.
+////        { { 0 }, 0 },   // Start buffer as empty.
+////        { { 0 }, 0 },   // Start buffer as empty.
+////        { { 0 }, 0 },   // Start buffer as empty.
+////    },
+////    
+////    0,                  // Buffer index to start of circular buffer.
+//};
 
 // FIFO for transmitting UART data.
 //
@@ -127,13 +127,13 @@ void UARTInit( void )
     U1STAbits.URXISEL = 0b10;   // Interrupt generated while receiver 3/4 full.
     
     // Baud Rate = Fpb   / ( 16 * ( U1BRG + 1 ) )
-    //           = 80MHZ / ( 16 * ( 520   + 1 ) )
-    //           = 9,597
+    //           = 80MHZ / ( 16 * ( 42    + 1 ) )
+    //           = 116,279
     //
-    // Error %   = ( 9597 - 9600 ) / 9600
-    //           = -0.03 %
+    // Error %   = ( 116279 - 115200 ) / 115200
+    //           = 0.94 %
     //
-    U1BRG = 520;
+    U1BRG = 42;
     
     // Set U1Tx and U1Rx interrupts to priority '1' and sub-priority to '0'.
     IPC6bits.U1IP = 1;
@@ -265,16 +265,41 @@ void UARTBufRx( void )
     UART_RX_BUF_S* rx_buf_elem;
     uint8_t        read_cnt;
 
-    // Perform intermediate access of current receiver buffer element used 
-    // for storing data to increase processing speed and reduce line length.
-    rx_buf_elem = &uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ];
+    static uint16_t tmp1;
+    static uint16_t tmp2;
+    
+//        // Perform intermediate access of current receiver buffer element used 
+//    // for storing data to increase processing speed and reduce line length.
+//    rx_buf_elem = &uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ];
+//    
+//    // Receive available data.
+//    read_cnt = UARTRead( &rx_buf_elem->data[ rx_buf_elem->data_len ],
+//                         ( UART_RX_BUF_DATA_LEN - rx_buf_elem->data_len ) );
+//    
+//        // Manage buffer control variables.
+//    rx_buf_elem->data_len += read_cnt;
+    
+
     
     // Receive available data.
-    read_cnt = UARTRead( &rx_buf_elem->data[ rx_buf_elem->data_len ],
-                         ( UART_RX_BUF_DATA_LEN - rx_buf_elem->data_len ) );
+    read_cnt = UARTRead( &uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ].data[ uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ].data_len ],
+                         ( UART_RX_BUF_DATA_LEN - uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ].data_len ) );
 
+    tmp1 = uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ].data_len;
+    
     // Manage buffer control variables.
-    rx_buf_elem->data_len += read_cnt;
+    uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ].data_len += read_cnt;
+    
+    tmp2 = uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ].data_len;
+    
+    Nop();
+    
+    uart_rx_cb.buf_arr[ 0 ].data_len = 0xAA;
+    uart_rx_cb.buf_arr[ 1 ].data_len = 0xBB;
+    uart_rx_cb.buf_arr[ 2 ].data_len = 0xCC;
+    uart_rx_cb.buf_arr[ 3 ].data_len = 0xDD;
+    
+    Nop();
     
     // Clear the interrupt flag.
     //

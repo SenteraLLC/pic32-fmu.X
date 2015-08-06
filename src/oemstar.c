@@ -116,7 +116,7 @@ static void OEMStarRspFwd( void )
     {
         uint8_t  data[ 1024 ];
         uint16_t data_len;
-    } static OEMStarRxBuf;
+    } static OEMStarRxBuf = { {0}, 0 }; // Start the buffer as empty.
     
     static uint32_t rx_time_us;
     
@@ -136,7 +136,7 @@ static void OEMStarRspFwd( void )
         if( ( 1024 - OEMStarRxBuf.data_len ) >= uartRxBuf->data_len )
         {
             // Copy UART data into module buffer.
-            memcpy( &OEMStarRxBuf.data[ 0 ],
+            memcpy( &OEMStarRxBuf.data[ OEMStarRxBuf.data_len ],
                     &uartRxBuf->data[ 0 ],
                     uartRxBuf->data_len );
             
@@ -148,8 +148,6 @@ static void OEMStarRspFwd( void )
             // data.
             oemstar_rx_overflow_latch = true;
         }
-        
-        Nop();
     }
     
     // Module buffer contains data ?
@@ -194,6 +192,4 @@ static void OEMStarRspFwd( void )
             }
         }
     }
-    
-    Nop();
 }

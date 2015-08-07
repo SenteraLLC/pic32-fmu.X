@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief 
+/// @brief NovAtel OEMStar GPS Receiver Application.
 ////////////////////////////////////////////////////////////////////////////////
 
 // *****************************************************************************
@@ -11,8 +11,8 @@
 // ************************** User Include Files *******************************
 // *****************************************************************************
 
-#include <sys/attribs.h>
 #include "oemstar.h"
+#include <sys/attribs.h>
 #include "fmucomm.h"
 #include "uart.h"
 #include "coretime.h"
@@ -20,6 +20,17 @@
 // *****************************************************************************
 // ************************** Defines ******************************************
 // *****************************************************************************
+
+// Length of transmitter static buffer.
+//
+// Note: This value must be larger than the largest message required to be
+// transmitted to the OEMStar.
+//
+#define OEMSTAR_TX_DATA_LEN 2048
+
+// The type of GPS receiver communicating.
+//  0 = NovAtel OEMStar
+#define OEMSTAR_GPS_TYPE 0
 
 // *****************************************************************************
 // ************************** Definitions **************************************
@@ -40,13 +51,12 @@ static void OEMStarRspFwd( void );
 // ************************** Global Functions *********************************
 // *****************************************************************************
 
-void OEMStarTask()
+void OEMStarTask( void )
 {
-    // Forward received Ethernet messages (i.e. Commands) to the GPS receiver.
+    // Forward GPS command (HOST -> GPS).
     OEMStarCmdFwd();
     
-    // Forward received GPS receiver messages (i.e. Responses and Logs) to the
-    // Ethernet.
+    // Forward GPS responses and logs (GPS -> HOST).
     OEMStarRspFwd();
 }
 
@@ -54,6 +64,8 @@ void OEMStarTask()
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
+// Forward received Ethernet messages (i.e. Commands) to the GPS receiver.
+//
 // Note: Only a single message can be transmitted at a time; that is, if an
 // additional GPS command is received while a previous one is being forwarded
 // over UART, the newly received GPS command will be ignored and the TX overflow
@@ -61,12 +73,13 @@ void OEMStarTask()
 //
 static void OEMStarCmdFwd( void )
 {
-    static uint8_t       uart_tx_data[ 1024 ];
+    static uint8_t       uart_tx_data[ OEMSTAR_TX_DATA_LEN ];
     static UART_TX_BUF_S uart_tx_buf = { &uart_tx_data[ 0 ] , 0, true };
     
-    bool setSuccess;
+    const FMUCOMM_RX_PKT*          gps_cmd_pkt_p;
+    const FMUCOMM_HOST_GPS_CMD_PL* gps_cmd_pl_p;
     
-    const FMUCOMM_HOST_PKT* gps_cmd_pkt_p;
+    bool setSuccess;
     
     gps_cmd_pkt_p = FMUCommGet( FMUCOMM_TYPE_GPS_CMD );
     
@@ -82,6 +95,10 @@ static void OEMStarCmdFwd( void )
         }
         else
         {
+            // Typecast received packet to GPS command type to access packet
+            // content.
+            gps_cmd_pl_p = (FMUCOMM_HOST_GPS_CMD_PL*) gps_cmd_pkt_p->pl_p;
+            
             // Copy in module buffer the data to be transmitted.
             //
             // Note: this is performed rather using the buffered GPS Ethernet
@@ -92,7 +109,7 @@ static void OEMStarCmdFwd( void )
             // to guarantee integrity during transmission.
             //
             memcpy( &uart_tx_buf.data_p[ 0 ],
-                    &gps_cmd_pkt_p->pl_p[ 0 ],
+                    &gps_cmd_pl_p->GPSData[ 0 ],
                     gps_cmd_pkt_p->wrap.length );
             
             // Setup the length of the buffer data.
@@ -110,13 +127,12 @@ static void OEMStarCmdFwd( void )
     }
 }
 
+// Forward received GPS receiver messages (i.e. Responses and Logs) to the
+// Ethernet.
 static void OEMStarRspFwd( void )
 {
-    struct
-    {
-        uint8_t  data[ 1024 ];
-        uint16_t data_len;
-    } static OEMStarRxBuf = { {0}, 0 }; // Start the buffer as empty.
+    static FMUCOMM_GPS_DATA_PL gps_data_pl;
+    static uint16_t            gps_data_len;
     
     static uint32_t rx_time_us;
     
@@ -133,14 +149,14 @@ static void OEMStarRspFwd( void )
         rx_time_us = CoreTime32usGet();
         
         // Module buffer contains available space for UART data ?
-        if( ( 1024 - OEMStarRxBuf.data_len ) >= uartRxBuf->data_len )
+        if( ( sizeof( gps_data_pl.gpsData ) - gps_data_len ) >= uartRxBuf->data_len )
         {
             // Copy UART data into module buffer.
-            memcpy( &OEMStarRxBuf.data[ OEMStarRxBuf.data_len ],
+            memcpy( &gps_data_pl.gpsData[ gps_data_len ],
                     &uartRxBuf->data[ 0 ],
                     uartRxBuf->data_len );
             
-            OEMStarRxBuf.data_len += uartRxBuf->data_len;
+            gps_data_len += uartRxBuf->data_len;
         }
         else
         {
@@ -151,7 +167,7 @@ static void OEMStarRspFwd( void )
     }
     
     // Module buffer contains data ?
-    if( OEMStarRxBuf.data_len != 0 )
+    if( gps_data_len != 0 )
     {
         // No UART data received for 1ms, or module buffer is
         // greater than 3/4 full ?
@@ -172,23 +188,27 @@ static void OEMStarRspFwd( void )
         // conditions.
         //
         // Note: An Ethernet packet is transmitted when the internal module
-        // buffer is 3/4 full.  This is performed so than internal storage does
+        // buffer is 3/4 full.  This is performed so that internal storage does
         // not overflow.  Segmenting of responses to Ethernet packets is 
         // unlikely in this case.
         //
         if( ( CoreTime32usGet() - rx_time_us > 1000 ) ||
-            ( OEMStarRxBuf.data_len          > 768  ) )
+            ( gps_data_len                   > 1125 ) )
         {
+            // Populate additional GPS data fields.
+            gps_data_pl.fmuTime = CoreTime64usGet();
+            gps_data_pl.gpsType = OEMSTAR_GPS_TYPE;
+            
             // Queue Ethernet data for transmission.
             setSuccess = FMUCommSet( FMUCOMM_TYPE_GPS_DATA, 
-                                     &OEMStarRxBuf.data[ 0 ], 
-                                     OEMStarRxBuf.data_len );
+                                     (uint8_t*) &gps_data_pl, 
+                                      sizeof( gps_data_pl.fmuTime ) + sizeof( gps_data_pl.gpsType ) + gps_data_len );
             
             // Ethernet data queued successfully ?
             if( setSuccess == true )
             {
                 // Clear the module buffer length to reset buffer.
-                OEMStarRxBuf.data_len = 0;
+                gps_data_len = 0;
             }
         }
     }

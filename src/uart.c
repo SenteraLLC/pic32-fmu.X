@@ -103,11 +103,11 @@ static UART_TX_FIFO_S uart_tx_fifo =
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-void UARTBufRx( void );
-void UARTBufTX( void );
+static void UARTBufRx( void );
+static void UARTBufTX( void );
 
-uint8_t UARTRead( uint8_t* data_p, uint16_t data_len );
-uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len );
+static uint8_t UARTRead( uint8_t* data_p, uint16_t data_len );
+static uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len );
 
 // *****************************************************************************
 // ************************** Global Functions *********************************
@@ -147,33 +147,18 @@ void UARTInit( void )
     IEC0bits.U1RXIE = 1;
 }
 
-// Note: Alternate control flow supplied for turning on the
-// UART communication to manage software receiver buffer overflow. If a large
-// amount of time exists between enabling the module and the first execution
-// of 'Task', then the receiver hardware buffer could overflow and
-// received data be lost.
 void UARTStartup( void )
 {
     // Turn module on.
     U1MODEbits.ON = 1;
 }
 
-// Manage receiver buffer for receiving of new data.
-//
-// Note: This function must occur at a lower priority that the receiver ISR.
-//
-// Note: Data over UART is assumed to be a continuous stream; therefore,
-// the hardware buffer is never flush as it's assumed the 3/4 full interrupt
-// will occur.  That is, it's assumed that unread data will not sit in
-// the receiver hardware buffer (e.g. 1/2 full of data) for an extended
-// period of time.
-//
 void UARTTask( void )
 {
     uint8_t cb_next_idx;
     
     // Flush any remaining data into the reception buffer before updating
-    // the circular buffer.  Trigger the Receiver interrupt to read any
+    // the circular buffer.  Trigger the receiver interrupt to read any
     // remaining UART data.
     IFS0bits.U1RXIF = 1;
     
@@ -193,24 +178,6 @@ void UARTTask( void )
     uart_rx_cb.buf_idx = cb_next_idx;
 }
 
-void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void ) 
-{
-    // Receiver caused interrupt ?
-    if( IFS0bits.U1RXIF == 1 )
-    {
-        // Service the receiver.
-        UARTBufRx();
-    }
-    
-    // Transmitter caused interrupt ?
-    if( IFS0bits.U1TXIF == 1 )
-    {
-        // Service the transmitter.
-        UARTBufTX();
-    }
-}
-
-// Return pointer to freshest received data available for processing.
 const UART_RX_BUF_S* UARTGet( void )
 {
     uint8_t prev_idx;
@@ -223,7 +190,6 @@ const UART_RX_BUF_S* UARTGet( void )
     return ( &uart_rx_cb.buf_arr[ prev_idx ] );
 }
 
-// Setup a buffer for transmission if space available.
 bool UARTSet( UART_TX_BUF_S* tx_buf_p )
 {
     bool success = false;
@@ -265,7 +231,26 @@ bool UARTSet( UART_TX_BUF_S* tx_buf_p )
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
-void UARTBufRx( void )
+void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void ) 
+{
+    // Receiver caused interrupt ?
+    if( IFS0bits.U1RXIF == 1 )
+    {
+        // Service the receiver.
+        UARTBufRx();
+    }
+    
+    // Transmitter caused interrupt ?
+    if( IFS0bits.U1TXIF == 1 )
+    {
+        // Service the transmitter.
+        UARTBufTX();
+    }
+}
+
+// Service the receiver interrupt.  The receiver hardware buffer content is
+// copied into module data.
+static void UARTBufRx( void )
 {
     UART_RX_BUF_S* rx_buf_elem;
     uint8_t        read_cnt;
@@ -305,7 +290,7 @@ void UARTBufRx( void )
 // When data_p is full, receiver hardware must still be read to service hardware
 // operation.  Read hardware data when data_p is full is lost.
 //
-uint8_t UARTRead( uint8_t* data_p, uint16_t data_len )
+static uint8_t UARTRead( uint8_t* data_p, uint16_t data_len )
 {
     uint8_t data_cnt = 0;
     uint8_t rx_byte;
@@ -356,8 +341,9 @@ uint8_t UARTRead( uint8_t* data_p, uint16_t data_len )
     return data_cnt;
 }
 
-// Write next chunk of data to be transmitted.
-void UARTBufTX( void )
+// Service the transmitter interrupt.  Write next chunk of data to be
+// transmitted to the transmitter hardware buffer.
+static void UARTBufTX( void )
 {
     UART_TX_BUF_S* tx_buf_elem;
     uint8_t        write_cnt;
@@ -413,7 +399,7 @@ void UARTBufTX( void )
 }
 
 // Write supplied data to the hardware transmit buffer.
-uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len )
+static uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len )
 {
     uint8_t data_cnt = 0;
     

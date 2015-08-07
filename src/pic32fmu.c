@@ -25,14 +25,13 @@ APP_CONFIG AppConfig;
 
 int main()
 {
-    InitBoard();    // Initialize FMU processor and peripherals.
+    InitBoard();            // Initialize FMU processor and peripherals.
     
-    // INTEnableSystemMultiVectoredInt();
-    asm volatile ("ei");
+    asm volatile ("ei");    // Enable Global interrupts.
     
-    UARTStartup();
+    UARTStartup();          // Startup UART operation.
     
-    for (;;)        // Main program loop.
+    for (;;)                // Main program loop.
     {
         WDTCONSET = _WDTCON_WDTCLR_MASK;        // Clear watchdog timer.
         LATFbits.LATF3 = CoreTime64sGet() % 2;  // Blink LED at 0.5Hz

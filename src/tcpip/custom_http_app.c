@@ -40,7 +40,6 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "system_config.h"
 #include "tcpip/tcpip.h"
 #include "coretime.h"
-#include "can.h"
 
 extern APP_CONFIG AppConfig;
 
@@ -182,27 +181,6 @@ HTTP_IO_RESULT HTTPExecuteGet(void)
             val = atof((char*)cmdPtr);
             
             Nop();      // TODO: Process command data.
-            
-            
-            
-            
-            /// TEMP FOR DEBUG /////////////////////////////////////////////////
-            uint16_t val_u16;
-            val_u16 = (uint16_t) val;
-            
-            CAN_TX_SERVO_CMD_U cmd_msg;
-            
-            cmd_msg.cmd_type = 0;       // command PWM to be used.
-            cmd_msg.cmd_pwm  = val_u16; // feed through value from ethernet to CAN interface.
-            
-            // Queue the CAN message for transmission.
-            CANTxSet( CAN_TX_MSG_SERVO_CMD, 0x7F, cmd_msg.data_u32 );
-            /// END TEMP FOR DEBUG /////////////////////////////////////////////
-            
-            
-            
-            
-            
         }
     }
 

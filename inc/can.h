@@ -55,7 +55,7 @@ typedef union
 {
     uint32_t data_u32[ 2 ];
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint16_t cmd_type;
         uint16_t cmd_pwm;
@@ -67,9 +67,9 @@ typedef union
 /// Payload content of Node Status message.
 typedef union
 {
-    uint16_t data_u32[ 2 ];
+    uint32_t data_u32[ 2 ];
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint16_t reset_condition;
         uint16_t reset_detail;
@@ -80,9 +80,9 @@ typedef union
 /// Payload content of Node Version message.
 typedef union
 {
-    uint16_t data_u32[ 2 ];
+    uint32_t data_u32[ 2 ];
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint8_t  node_type;
         uint8_t  rev_ver;
@@ -96,9 +96,9 @@ typedef union
 /// Payload content of Configuration Write Request message.
 typedef union
 {
-    uint16_t data_u32[ 2 ];
+    uint32_t data_u32[ 2 ];
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint16_t cfg_sel;
         
@@ -115,9 +115,9 @@ typedef union
 /// Payload content of Configuration Read Request message.
 typedef union
 {
-    uint16_t data_u32[ 2 ];
+    uint32_t data_u32[ 2 ];
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint16_t cfg_sel;
 
@@ -132,13 +132,12 @@ typedef union
 /// Payload content of Configuration Write Response message.
 typedef union
 {
-    uint16_t data_u32[ 2 ];
+    uint32_t data_u32[ 2 ];
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint16_t cfg_sel;
         uint16_t fault_status;
-        uint16_t fault_detail;
     };
     
 } CAN_RX_WRITE_RESP_U;
@@ -146,13 +145,13 @@ typedef union
 /// Payload content of Configuration Read Response message.
 typedef union
 {
-    uint16_t data_u32[ 2 ];
+    uint32_t data_u32[ 2 ];
     
     struct
     {
         uint16_t cfg_sel;
         
-        union
+        union __attribute__ ((packed))
         {
             uint8_t cfg_val_u8;
             int32_t cfg_val_i32;
@@ -184,8 +183,13 @@ void CANInit( void );
 ///             The destination node's ID, to receive the message.
 /// @param  payload
 ///             Payload of message to transmit.
+///
+/// @note   When not applicable, the calling application should set
+///         parameter dest_id to zero.
 ////////////////////////////////////////////////////////////////////////////////
-void CANTxSet( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, const uint32_t payload[ 2 ] );
+void CANTxSet( CAN_TX_MSG_TYPE_E tx_msg_type, 
+               uint8_t dest_id, 
+               const uint32_t payload[ 2 ] );
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief  Read received CAN message.

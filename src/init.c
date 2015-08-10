@@ -221,11 +221,6 @@ static void InitTCPIPStack()
     return;
 }
 
-static void InitCAN( void )
-{
-    CANInit();
-}
-
 //==============================================================================
 
 void InitBoard()
@@ -236,7 +231,7 @@ void InitBoard()
     InitTMR();
     InitSPI();
     InitINT();
-    InitCAN();
+    CANInit();
 
     // Initialize external hardware peripherals.
     KSZ8895Init();

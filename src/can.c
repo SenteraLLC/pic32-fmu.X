@@ -1,11 +1,48 @@
+////////////////////////////////////////////////////////////////////////////////
+/// @file   
+/// @brief  Controller Area Network (CAN) driver. 
+////////////////////////////////////////////////////////////////////////////////
 
+// *****************************************************************************
+// ************************** System Include Files *****************************
+// *****************************************************************************
 
+#include <sys/kmem.h>
+
+// *****************************************************************************
+// ************************** User Include Files *******************************
+// *****************************************************************************
 
 #include "can.h"
 
+// *****************************************************************************
+// ************************** Defines ******************************************
+// *****************************************************************************
 
+// Mask(s) for the CAN FIFO Control Register
+//
+// TXREQ (bit 3) - bit set to '1' to request transmission; hardware sets value 
+//                 to '0' to identify completion of FIFO transmission.
+// 
+// UINC (bit 13) - set to '1' by software to increment the FIFO head.
+//
+#define CAN_FIFOCON_TXREQ_MASK      0x00000008
+#define CAN_FIFOCON_UINC_MASK       0x00002000
 
+// Mask(s) for the CAN FIFO Interrupt Register
+//
+// TXNFULLIF (bit 10) - '1' identifies FIFO as not full; '0' identifies FIFO as
+//                      full.
+//
+// RXNEMPTYIF (bit 0) - '1' identifies FIFO as not empty; '0' identifies FIFO as
+//                      empty.
+//
+#define CAN_FIFOINT_TXNFULLIF_MASK  0x00000400
+#define CAN_FIFOINT_RXNEMPTYIF_MASK 0x00000001
 
+// *****************************************************************************
+// ************************** Definitions **************************************
+// *****************************************************************************
 
 // FIFO0  - Tx - Servo Command                  - 32 message buffer
 // FIFO1  - Tx - Node Status                    -  1 message buffer
@@ -28,52 +65,31 @@
 //
 static uint32_t can_msg_buf[ 148 ];
 
-// ??? INCLUDE #include <kmem.h> INSTEAD ???
-/* 
- * Translate a kernel virtual address in KSEG0 or KSEG1 to a real
- * physical address and back.
- */
-typedef unsigned long _paddr_t; /* a physical address */
-#define KVA_TO_PA(v) 	((_paddr_t)(v) & 0x1fffffff)
-#define PA_TO_KVA0(pa)	((void *) ((pa) | 0x80000000))
-#define PA_TO_KVA1(pa)	((void *) ((pa) | 0xa0000000))
+// *****************************************************************************
+// ************************** Function Prototypes ******************************
+// *****************************************************************************
 
-#define CAN_FIFOCON_TXREQ_MASK      0x00000008
-#define CAN_FIFOCON_UINC_MASK       0x00002000
-#define CAN_FIFOINT_TXNFULLIF_MASK  0x00000400
+static void CANTxBuildHeader( CAN_TX_MSG_TYPE_E tx_msg_type, 
+                              uint8_t dest_id, 
+                              uint32_t msg_buf[ 4 ] );
 
-#define CAN_FIFOINT_RXNEMPTYIF_MASK 0x00000001
-
-
-
-
-
-
-
-
-static void CANTxBuildHeader( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, uint32_t msg_buf[ 4 ] );
+// *****************************************************************************
+// ************************** Global Functions *********************************
+// *****************************************************************************
 
 void CANInit( void )
 {
-    // ENABLED THE DESCRETE TO THE CAN TRANSEIVER!!!  Should be accomplished
-    // in discrete I/O module ???  Configured there but set here ???  Both 
-    // configured and set here ???
-    //
-    // NEED TO SET (I.E. LOGIC-HIGH) 'CAN_EN' (I.E. PIN RB12) TO ENABLE TRANSCEIVER.
-
     // CAN_EN transceiver pin (pin 27) configuration
     AD1PCFGbits.PCFG12  = 1;    // AN12: Analog input pin in digital mode.
     ODCBbits.ODCB12     = 0;    // RB12: Normal output (i.e. not open-drain)
     TRISBbits.TRISB12   = 0;    // RB12: Output
-    LATBbits.LATB12     = 1;    // RB12: Logic HigH
+    LATBbits.LATB12     = 1;    // RB12: Logic High
     
     // CAN2 transmit pin (pin 21) configuration
     AD1PCFGbits.PCFG8   = 1;    // AN8: Analog input pin in digital mode.
-    ODCBbits.ODCB8      = 0;    // RB8: Normal output (i.e. not open-drain)
     
     // CAN2 Receive pin (pin 29) configuration
     AD1PCFGbits.PCFG14  = 1;    // AN14: Analog input pin in digital mode.
-    TRISBbits.TRISB14 = 1; 
     
     // Enable the CAN2 module.
     C2CONbits.ON = 1;
@@ -184,13 +200,6 @@ void CANInit( void )
     while( C2CONbits.OPMOD != 0 );
 }
 
-
-
-
-
-
-
-// When not applicable, the calling application should set 'dest_id' to zero.
 void CANTxSet ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, const uint32_t payload[ 2 ] )
 {
     // Structure definition of HW elements corresponding the a message type.
@@ -244,8 +253,6 @@ void CANTxSet ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, const uint32_t p
     }
 }
 
-
-
 bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint32_t payload[ 2 ] )
 {
     // Structure definition of HW elements corresponding the a message type.
@@ -292,18 +299,13 @@ bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint32_t payload[ 2 ] )
     return data_rx_flag;
 }
 
+// *****************************************************************************
+// ************************** Static Functions *********************************
+// *****************************************************************************
 
-
-
-
-
-
-
-
-
-
-
-static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, uint32_t msg_buf[ 4 ] )
+static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, 
+                               uint8_t dest_id, 
+                               uint32_t msg_buf[ 4 ] )
 {
     // Union defining the contents of the CAN ID field.
     typedef union
@@ -420,7 +422,7 @@ static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, u
         
         // CAN_TX_MSG_CFG_READ_REQ
         {
-            2,                  // data_len  
+            2,                  // data_len (bytes)  
             
             {
                 {
@@ -464,9 +466,38 @@ static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, u
     tx_hw_header.eid = can_id.id_lo;
     tx_hw_header.dlc = tx_can_data[ tx_msg_type ].data_len;
             
-    //
-    // TODO: SET LENGTH OF WRITE REQ MESSAGE WHICH IS VARIABLE.
-    //
+    // Handle the special case of Configuration Write Request which has a
+    // variable length.
+    if( tx_msg_type == CAN_TX_MSG_CFG_WRITE_REQ )
+    {
+        // For the Configuration Write Request message, the first 16-bits within
+        // the payload (bits 0-16 of word 2) identifies the type of data 
+        // returned.  Possible data includes:
+        //
+        //  Payload             Description             Length (in bytes)
+        //  0                   Node ID                 1
+        //  1-6                 PWM coefficients        4 (each)
+        //  7-12                VSENSE1 Coefficients    4 (each)
+        //  13-18               VSENSE2 Coefficients    4 (each)
+        //
+        // The data length (dlc) for each Configuration Write Request Message is 
+        // 2 bytes for the type identifier plus the value's length.
+        //
+        if( ( msg_buf[ 2 ] & 0x0000FFFF ) == 0 )
+        {
+            tx_hw_header.dlc = 2 + 1;
+        }
+        else
+        {
+            tx_hw_header.dlc = 2 + 4;
+        }
+    }
+    else
+    {
+        // The message is not a Configuration Write Request.  The length is
+        // computed statically.
+        tx_hw_header.dlc = tx_can_data[ tx_msg_type ].data_len;
+    }
     
     // Copy the hardware header into the transmit buffer.
     msg_buf[ 0 ] = tx_hw_header.data_u32[ 0 ];

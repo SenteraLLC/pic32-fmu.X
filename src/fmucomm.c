@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief 
+/// @brief Flight Management Unit (FMU) Ethernet Communication.
 ////////////////////////////////////////////////////////////////////////////////
 
 // *****************************************************************************
@@ -11,8 +11,8 @@
 // ************************** User Include Files *******************************
 // *****************************************************************************
 
-#include <sys/attribs.h>
 #include "fmucomm.h"
+#include <sys/attribs.h>
 #include "tcpip/tcpip.h"
 #include "util.h"
 
@@ -27,21 +27,21 @@
 //  - Payload Length    2 bytes
 //  - CRC               2 bytes
 //
-//#define FMUCOMM_HEADER_SIZE 6
 #define FMUCOMM_WRAP_SIZE   8
 
+// Structure defining elements for the configuration of received messages.
 typedef struct
 {
-    uint8_t   header0;
-    uint8_t   header1;
-    uint8_t   header2;
-    uint8_t   type;
-    uint16_t  length_lb;
-    uint16_t  length_ub;
-    void*     pkt_p;
+    uint8_t           header0;
+    uint8_t           header1;
+    uint8_t           header2;
+    uint8_t           type;
+    uint16_t          lengthLb;  // length - lower bound
+    uint16_t          lengthUb;  // length - upper bound
     
 } FMUCOMM_RX_CFG;
 
+// Structure defining elements for the configuration of transmitted messages.
 typedef struct
 {
     uint8_t header0;
@@ -51,20 +51,26 @@ typedef struct
     
 } FMUCOMM_TX_CFG;
 
-
 // *****************************************************************************
 // ************************** Definitions **************************************
-// ************************************R*****************************************
+// *****************************************************************************
 
-static FMUCOMM_RX_CFG fmucomm_rx_cfg [ ] =
-{ 
-    { 'U', 'M', 'N', 0x00, 16,   16, &FMUCommHostHeartbeatPkt  },  // FMUCOMM_TYPE_HOST_HEARTBEAT     
-    { 'U', 'M', 'N', 0x01,  3,   60, &FMUCommCtrlSurfaceCmdPkt },  // FMUCOMM_TYPE_CTRL_SURFACE_CMD    
-    { 'U', 'M', 'N', 0x02,  1, 1024, &FMUCommHostGPSCmdPkt     },  // FMUCOMM_TYPE_GPS_CMD   
-    { 'U', 'M', 'N', 0x7F,  1, 1024, &FMUCommHostExeptionPkt   },  // FMUCOMM_TYPE_HOST_EXCEPTION 
+// Configuration data for received messages.
+//
+// Note: length lower-bound and upper-bound and required to be set to 
+// correspond with packet buffer size definition (i.e. see structure definition 
+// of message payload sizes); otherwise invalid array access can occur.
+//
+static const FMUCOMM_RX_CFG fmucommRxCfg [ ] =
+{
+    { 'U', 'M', 'N', 0x00, 16,   16 },  // FMUCOMM_TYPE_HOST_HEARTBEAT     
+    { 'U', 'M', 'N', 0x01,  3,   60 },  // FMUCOMM_TYPE_CTRL_SURFACE_CMD    
+    { 'U', 'M', 'N', 0x02,  1, 1024 },  // FMUCOMM_TYPE_GPS_CMD   
+    { 'U', 'M', 'N', 0x7F,  1, 1024 },  // FMUCOMM_TYPE_HOST_EXCEPTION 
 };
-    
-static FMUCOMM_TX_CFG fmucomm_tx_cfg [ ] =
+
+// Configuration data for transmitted messages
+static const FMUCOMM_TX_CFG fmucommTxCfg [ ] =
 {
     { 'U', 'M', 'N', 0x80 },  // FMUCOMM_TYPE_FMU_HEARTBEAT     
     { 'U', 'M', 'N', 0x81 },  // FMUCOMM_TYPE_IMU_DATA          
@@ -74,22 +80,28 @@ static FMUCOMM_TX_CFG fmucomm_tx_cfg [ ] =
     { 'U', 'M', 'N', 0xFF },  // FMUCOMM_TYPE_FMU_EXCEPTION     
 };
 
-// Client IP Address (239.192.143.140) in big-endian.
-static const uint32_t   clientIPAddr = 0x0B8FA8C0;
+// Ethernet client socket settings.
+static const uint32_t   clientIPAddr = 0x0B8FA8C0;  // (192.168.143.11) in big-endian.
 static const UDP_PORT   clientPort   = 55455;
 static       UDP_SOCKET clientSocket = INVALID_UDP_SOCKET;
 
-static FMUCOMM_HOST_HEARTBEAT_PKT   FMUCommHostHeartbeatPkt;
-static FMUCOMM_CTRL_SURFACE_CMD_PKT FMUCommCtrlSurfaceCmdPkt;
-static FMUCOMM_HOST_GPS_CMD_PKT     FMUCommHostGPSCmdPkt;
-static FMUCOMM_HOST_EXCEPTION_PKT   FMUCommHostExeptionPkt;
+// Ethernet server socket settings.
+static const UDP_PORT   servertPort  = 55455;
+static       UDP_SOCKET serverSocket = INVALID_UDP_SOCKET;
 
-static bool fmucomm_rx_valid[ FMUCOMM_RX_TYPE_MAX ] =
+// Allocation for received messages' payload.
+static FMUCOMM_HOST_HEARTBEAT_PL   FMUCommHostHeartbeatPl;
+static FMUCOMM_CTRL_SURFACE_CMD_PL FMUCommCtrlSurfaceCmdPl;
+static FMUCOMM_HOST_GPS_CMD_PL     FMUCommHostGPSCmdPl;
+static FMUCOMM_HOST_EXCEPTION_PL   FMUCommHostExeptionPl;
+
+// Received packet data.
+static FMUCOMM_RX_PKT FMUCommRxPkt[ FMUCOMM_RX_TYPE_MAX ] =
 {
-    false,
-    false,
-    false,
-    false,
+    { false, { 0 }, &FMUCommHostHeartbeatPl.pl_u8[ 0 ]  },   // FMUCOMM_TYPE_HOST_HEARTBEAT
+    { false, { 0 }, &FMUCommCtrlSurfaceCmdPl.pl_u8[ 0 ] },   // FMUCOMM_TYPE_CTRL_SURFACE_CMD
+    { false, { 0 }, &FMUCommHostGPSCmdPl.pl_u8[ 0 ]     },   // FMUCOMM_TYPE_GPS_CMD
+    { false, { 0 }, &FMUCommHostExeptionPl.pl_u8[ 0 ]   },   // FMUCOMM_TYPE_HOST_EXCEPTION
 };
 
 // *****************************************************************************
@@ -114,14 +126,22 @@ void FMUCommTask()
     {
         case SM_INIT:
         {
-            // Open up the port. Unicast IP Address
+            // Open a client socket for transmission of UDP data.
             clientSocket = UDPOpenEx( clientIPAddr,
                                       UDP_OPEN_IP_ADDRESS,
                                       0,
                                       clientPort );
             
-            // Port opened successfully ?
-            if( clientSocket != INVALID_UDP_SOCKET )
+            // Open a server socket for reception of UDP data.
+            serverSocket = UDPOpenEx( 0, 
+                                      UDP_OPEN_SERVER,
+                                      servertPort,
+                                      0 );
+            
+            
+            // Sockets opened successfully ?
+            if( ( clientSocket != INVALID_UDP_SOCKET ) &&
+                ( serverSocket != INVALID_UDP_SOCKET ) )
             {
                 FMUCommTaskState++;
             }
@@ -130,6 +150,8 @@ void FMUCommTask()
         }
         case SM_PROCESS:
         {
+            FMUCOMM_RX_TYPE_E rxIdx;
+            
             // Clear validity identifiers for all received messages.
             //
             // Note: validity flags are only set for one iteration of the 
@@ -137,7 +159,12 @@ void FMUCommTask()
             // must fully process the message or copy the message during
             // an execution.
             //
-            memset( &fmucomm_rx_valid[ 0 ], false, sizeof( fmucomm_rx_valid ) );
+            for( rxIdx = (FMUCOMM_RX_TYPE_E) 0;
+                 rxIdx < FMUCOMM_RX_TYPE_MAX;
+                 rxIdx++ )
+            {
+                FMUCommRxPkt[ rxIdx ].valid = false;
+            }
             
             // Read UDP data and decode.
             FMUCommRead();
@@ -147,9 +174,9 @@ void FMUCommTask()
 
 bool FMUCommSet( FMUCOMM_TX_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen )
 {
-    bool            setSuccess = false;
-    FMUCOMM_TX_CFG* pktCfg_p;
-    uint16_t        calcCRC;
+          bool            setSuccess = false;
+    const FMUCOMM_TX_CFG* pktCfg_p;
+          uint16_t        calcCRC;
     
     // FMU socket is open for communication ?
     if( UDPIsOpened( clientSocket ) == true )
@@ -162,7 +189,7 @@ bool FMUCommSet( FMUCOMM_TX_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen )
             
             // Index the selected packets configuration once - improves
             // processing speed and reduces line length.
-            pktCfg_p = &fmucomm_tx_cfg[ pktType ];
+            pktCfg_p = &fmucommTxCfg[ pktType ];
             
             // Calculate CRC of the packet - includes the type, length, and
             // payload.
@@ -211,23 +238,22 @@ bool FMUCommSet( FMUCOMM_TX_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen )
     return setSuccess;
 }
 
-bool FMUCommGet( FMUCOMM_RX_TYPE_E pktType, void** pkt_pp )
+const FMUCOMM_RX_PKT* FMUCommGet( FMUCOMM_RX_TYPE_E pktType )
 {
-    // Valid packed data exists ?
-    if( fmucomm_rx_valid[ pktType ] == true )
-    {
-        // Return an alias to the packet.
-        *pkt_pp = fmucomm_rx_cfg[ pktType ].pkt_p;
-    }
-    
-    return fmucomm_rx_valid[ pktType ];
+    return &FMUCommRxPkt[ pktType ];
 }
 
 // *****************************************************************************
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
-// Read and decode UDP data
+// Read and decode Ethernet data
+//
+// Note: Only a singe message type can be read per execution (e.g. a single
+// Host-Heartbeat message).  If multiple message of the same type are received
+// during a single execution the previous message will be overwritten with 
+// the later message.
+//
 void FMUCommRead( void )
 {
     // State for UPD packet reception.
@@ -249,25 +275,23 @@ void FMUCommRead( void )
                  
     } UDPState = UDP_SM_HEADER_0;
     
-    static FMUCOMM_RX_TYPE_E rx_cfg_idx;
-    
     static FMUCOMM_PKT_WRAP pkt_wrap;
     
-    uint16_t udp_byte_cnt;
-    uint16_t udp_byte_idx;
+    uint16_t UDPByteCnt;
+    uint16_t UDPByteIdx;
     
-    // FMU socket is open for communication ?
-    if( UDPIsOpened( clientSocket ) == true )
+    // FMU socket is open for reception ?
+    if( UDPIsOpened( serverSocket ) == true )
     {
-        udp_byte_cnt = UDPIsGetReady( clientSocket );
+        UDPByteCnt = UDPIsGetReady( serverSocket );
         
         // Socket has received a segment ?
-        if( udp_byte_cnt != 0 )
+        if( UDPByteCnt != 0 )
         {
             // Increment through the received UDP bytes.
-            for( udp_byte_idx = 0;
-                 udp_byte_idx < udp_byte_cnt;
-                 udp_byte_cnt++ )
+            for( UDPByteIdx = 0;
+                 UDPByteIdx < UDPByteCnt;
+                 UDPByteIdx++ )
             {
                 //
                 // Note: Return value of function 'UDPGet' is not checked since 
@@ -326,35 +350,38 @@ void FMUCommRead( void )
                     }
                     case UDP_SM_TYPE:
                     {
-                        bool type_valid = false;
+                        FMUCOMM_RX_TYPE_E rxCfgIdx;
+                        bool              typeValid = false;
                          
                         (void) UDPGet( &pkt_wrap.type );
                         
-                        for( rx_cfg_idx = 0;
-                             rx_cfg_idx < FMUCOMM_RX_TYPE_MAX;
-                             rx_cfg_idx++ )
+                        for( rxCfgIdx = 0;
+                             rxCfgIdx < FMUCOMM_RX_TYPE_MAX;
+                             rxCfgIdx++ )
                         {
                             // Received UDP byte matches expected value ?
-                            if( pkt_wrap.type == fmucomm_rx_cfg[ rx_cfg_idx ].type )
+                            if( pkt_wrap.type == fmucommRxCfg[ rxCfgIdx ].type )
                             {
-                                type_valid = true;
-
-                                UDPState++;
+                                typeValid = true;
                             }
                         }
                         
-                        // Receive message type was not valid ?
-                        if( type_valid == false )
+                        // Receive message type was valid ?
+                        if( typeValid == true )
+                        {
+                            UDPState++;
+                        }
+                        else
                         {
                             // Packet format error, return to initial state.
                             UDPState = UDP_SM_HEADER_0;
                         }
-                        
+
                         break;
                     }
                     case UDP_SM_LENGTH_LSB:
                     {
-                        (void) UDPGet( &pkt_wrap.length_lsb );
+                        (void) UDPGet( &pkt_wrap.lengthLsb );
                         
                         UDPState++;
                         
@@ -362,11 +389,11 @@ void FMUCommRead( void )
                     }
                     case UDP_SM_LENGTH_MSB:
                     {
-                        (void) UDPGet( &pkt_wrap.length_msb );
+                        (void) UDPGet( &pkt_wrap.lengthMsb );
                         
                         // Received length matches required value ?
-                        if( ( pkt_wrap.length >= fmucomm_rx_cfg[ rx_cfg_idx ].length_lb ) &&
-                            ( pkt_wrap.length <= fmucomm_rx_cfg[ rx_cfg_idx ].length_ub ) )
+                        if( ( pkt_wrap.length >= fmucommRxCfg[ pkt_wrap.type ].lengthLb ) &&
+                            ( pkt_wrap.length <= fmucommRxCfg[ pkt_wrap.type ].lengthUb ) )
                         {
                             UDPState++;
                         }
@@ -380,20 +407,20 @@ void FMUCommRead( void )
                     }
                     case UDP_SM_PAYLOAD:
                     {
-                        static uint16_t pl_idx = 0;
+                        static uint16_t plIdx = 0;
                         
                         // Read the next UPD byte into the applicable packet's 
                         // payload allocation.
-                        (void) UDPGet( &fmucomm_rx_cfg[ rx_cfg_idx ].pkt_p[ FMUCOMM_WRAP_SIZE + pl_idx ] );
+                        (void) UDPGet( &FMUCommRxPkt[ pkt_wrap.type ].pl_p[ plIdx ] );
                         
-                        pl_idx++;
+                        plIdx++;
                         
                         // Entire payload has been received ?
-                        if( pl_idx >= pkt_wrap.length )
+                        if( plIdx >= pkt_wrap.length )
                         {
                             // Re-initialize payload index for next
                             // evaluation.
-                            pl_idx = 0;
+                            plIdx = 0;
                             
                             UDPState++;
                         }
@@ -402,7 +429,7 @@ void FMUCommRead( void )
                     }
                     case UDP_SM_CRC_LSB:
                     {
-                        (void) UDPGet( &pkt_wrap.crc_lsb );
+                        (void) UDPGet( &pkt_wrap.crcLsb );
                         
                         UDPState++;
                         
@@ -411,9 +438,8 @@ void FMUCommRead( void )
                     case UDP_SM_CRC_MSB:
                     {
                         uint16_t calcCRC;
-                        uint8_t* pl_p = fmucomm_rx_cfg[ rx_cfg_idx ].pkt_p[ FMUCOMM_WRAP_SIZE ];
                         
-                        (void) UDPGet( &pkt_wrap.crc_msb );
+                        (void) UDPGet( &pkt_wrap.crcMsb );
                         
                         // Calculate CRC of the packet - includes the type, length, and
                         // payload.
@@ -423,19 +449,19 @@ void FMUCommRead( void )
                         // calculation is necessary because packet fields are in non-
                         // contiguous memory locations.
                         //
-                        calcCRC = utilCRC16( &pkt_wrap.type,   sizeof( pkt_wrap.type   ), 0       );
-                        calcCRC = utilCRC16( &pkt_wrap.length, sizeof( pkt_wrap.length ), calcCRC );
-                        calcCRC = utilCRC16( pl_p,             pkt_wrap.length,           calcCRC );
+                        calcCRC = utilCRC16( &pkt_wrap.type,                         sizeof( pkt_wrap.type   ), 0       );
+                        calcCRC = utilCRC16( &pkt_wrap.length,                       sizeof( pkt_wrap.length ), calcCRC );
+                        calcCRC = utilCRC16( &FMUCommRxPkt[ pkt_wrap.type ].pl_p[ 0 ], pkt_wrap.length,           calcCRC );
                         
                         // Calculated CRC matches that received ?
                         if( calcCRC == pkt_wrap.crc )
                         {
                             // Identify message as valid.
-                            fmucomm_rx_valid[ pkt_wrap.type ] = true;
+                            FMUCommRxPkt[ pkt_wrap.type ].valid = true;
                             
                             // Copy the wrapper field to the applicable message
                             // for possible processing by accessed module.
-                            memcpy( &fmucomm_rx_cfg[ rx_cfg_idx ].pkt_p[ FMUCOMM_WRAP_SIZE ],
+                            memcpy( &FMUCommRxPkt[ pkt_wrap.type ].wrap,
                                     &pkt_wrap,
                                     sizeof( pkt_wrap ) );
                         }

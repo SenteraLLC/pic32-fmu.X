@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief Analog to Digital Converter (ADC) driver. 
+/// @brief Vector Navigation (VN-100) driver.
 ////////////////////////////////////////////////////////////////////////////////
 
 // *****************************************************************************
@@ -24,46 +24,19 @@
 // The type of IMU being read. '0' identifies a VN-100.
 #define VN100_IMU_TYPE  0U
 
-//typedef struct __attribute__ ((packed)) {
-//    VN100_CMD_E     cmdID : 8;      // Command ID.
-//    VN100_REG_E     regID : 8;      // Register ID.
-//    uint8_t         zero_0;         // Zero byte. (0x00)
-//    uint8_t         zero_1;         // Zero byte. (0x00)
-//} VN100_SPI_REQUEST_HEADER;
-//
-//
-//typedef struct __attribute__ ((packed)) {
-//    uint8_t         zero_0;         // Zero byte. (0x00)
-//    VN100_CMD_E     cmdID : 8;      // Command ID.
-//    VN100_REG_E     regID : 8;      // Register ID.
-//    VN100_ERR_E     errID : 8;      // Error ID.
-//} VN100_SPI_RESPONSE_HEADER;
-//
-//
-//typedef union {
-//    VN100_SPI_REQUEST_HEADER    request;        // Request header format.
-//    VN100_SPI_RESPONSE_HEADER   response;       // Response header format.
-//    UINT_32                     raw;            // Raw header data.
-//} VN100_SPI_HEADER;
-//
-//typedef struct __attribute__ ((packed))
-//{
-//    uint16_t crc16;                             // Packet checksum.
-//} VN100_SPI_FOOTER;
-//
-//typedef struct __attribute__ ((packed)) {
-//    VN100_SPI_HEADER    header;                             // Packet header.
-//    uint8_t             payload[VN100_MAX_PAYLOAD_SIZE];    // Packet payload.
-//    VN100_SPI_FOOTER    footer;                             // Packet footer.
-//} VN100_SPI_PKT;
-
-
-
+// Size (in bytes) of the buffer used to holding request and receive packets.
+// The size is chosen to be larger than any packet size required for transfer.
+// Size includes the Header, Payload, and Footer (e.g. CRC) fields.
 #define VN100_XFER_BUF_SIZE 100
+
+// VN-100 command values for a Read and Write register operation.
+#define VN100_READ_REG_CMD  1
+#define VN100_WRITE_REG_CMD 2
 
 // VN100 SPI Read Register
 //  (Request)
 //      - Header:        4 bytes
+//      - Payload:       0 bytes
 //      - CRC:           2 bytes
 //  (Response)
 //      - Header:        4 bytes
@@ -79,68 +52,19 @@
 //      - CRC:           2 bytes
 //  (Response)
 //      - Header:        4 bytes
-//      - Payload:       Variable size based on read register
+//      - Payload:       Variable size (same as request payload)
 //      - Serial Status: 2 bytes
 //      - Serial Count:  2 bytes
 //      - CRC:           2 bytes
 // 
 #define VN100_SPI_HEADER_SIZE 4
-#define VN100_SPI_STATUS_SIZE 2
-#define VN100_SPI_COUNT_SIZE  2
 #define VN100_SPI_CRC_SIZE    2
 
-#define mVN100_SPI_REQ_CRC_OFFSET(x)     ( VN100_SPI_HEADER_SIZE            + (x)                   )
-#define mVN100_SPI_REQ_PKT_SIZE(x)       ( mVN100_SPI_REQ_CRC_OFFSET(x)     + VN100_SPI_CRC_SIZE    )
+#define mVN100_SPI_PKT_SIZE_NOCRC(x) ( VN100_SPI_HEADER_SIZE    + (x)                )
 
-#define mVN100_SPI_RESP_STATUS_OFFSET(x) ( VN100_SPI_HEADER_SIZE            + (x)                   )
-#define mVN100_SPI_RESP_COUNT_OFFSET(x)  ( mVN100_SPI_RESP_STATUS_OFFSET(x) + VN100_SPI_STATUS_SIZE )
-#define mVN100_SPI_RESP_CRC_OFFSET(x)    ( mVN100_SPI_RESP_COUNT_OFFSET(x)  + VN100_SPI_COUNT_SIZE  )
-#define mVN100_SPI_RESP_PKT_SIZE(x)      ( mVN100_SPI_RESP_CRC_OFFSET(x)    + VN100_SPI_CRC_SIZE    )
+#define mVN100_SPI_CRC_OFFSET(x)     ( VN100_SPI_HEADER_SIZE    + (x)                )
+#define mVN100_SPI_PKT_SIZE(x)       ( mVN100_SPI_CRC_OFFSET(x) + VN100_SPI_CRC_SIZE )
 
-
-// Accessed VN100 registers
-typedef enum
-{
-    VN100_REG_PROT,     // Communication Protocol Control
-    VN100_REG_YPR,      // Yaw Pitch Roll
-    VN100_REG_IMU,      // IMU Measurements
-    
-    VN100_REG_TOTAL     // Total number of registers accessed.
-    
-} VN100_REG_E;
-
-typedef struct
-{
-    uint8_t  regID;
-    uint16_t regLen;
-    
-} VN100_REG_CFG;
-
-//typedef struct __attribute__ ((packed))
-//{
-//    VN100_CMD_E     cmdID : 8;      // Command ID.
-//    VN100_REG_E     regID : 8;      // Register ID.
-//    uint8_t         zero_0;         // Zero byte. (0x00)
-//    uint8_t         zero_1;         // Zero byte. (0x00)
-//    
-//    uint8_t*        payload;        // Packet payload.
-//    uint16_t        payloadLen;     // Payload length.
-//    
-//} VN100_SPI_REQ_PKT;
-//
-//typedef struct __attribute__ ((packed))
-//{
-//    uint8_t         zero_0;         // Zero byte. (0x00)
-//    VN100_CMD_E     cmdID : 8;      // Command ID.
-//    VN100_REG_E     regID : 8;      // Register ID.
-//    VN100_ERR_E     errID : 8;      // Error ID.
-//    
-//    uint8_t*        payload;        // Packet payload.
-//    uint16_t        payloadLen;     // Payload length.
-//    
-//    bool            crc16_fail;     // 16-bit CRC failure/mismatch.
-//    
-//} VN100_SPI_RESP_PKT;
 
 typedef union
 {
@@ -163,63 +87,151 @@ typedef union
     
 } VN100_VPE_STATUS;
 
-// *****************************************************************************
-// ************************** Definitions **************************************
-// *****************************************************************************
-
-
-static const VN100_REG_CFG vn100_reg_cfg[ VN100_REG_TOTAL ] = 
+typedef struct
 {
-    { 30 ,  7 },       // VN100_REG_PROT
-    {  8 , 12 },       // VN100_REG_YPR
-    { 54 , 44 },       // VN100_REG_IMU
-};
-
-// IMU Measurements (ID 54)
-static struct
-{
-    float            magX;               // Uncompensated magnetic X-axis.
-    float            magY;               // Uncompensated magnetic Y-axis.
-    float            magZ;               // Uncompensated magnetic Z-axis.
-    float            accelX;             // Uncompensated acceleration X-axis.
-    float            accelY;             // Uncompensated acceleration Y-axis.
-    float            accelZ;             // Uncompensated acceleration Z-axis.
-    float            gyroX;              // Uncompensated angular rate X-axis.
-    float            gyroY;              // Uncompensated angular rate Y-axis.
-    float            gyroZ;              // Uncompensated angular rate Z-axis.
-    float            temp;               // IMU temperature.
-    float            pressure;           // Barometric pressure.
-    VN100_VPE_STATUS vpeStatus;
-    uint32_t         syncInTime;
+    uint8_t     cmdID;
+    uint8_t     arg;
     
-} imuMeasurements;
+    uint8_t*    reqPl;
+    uint16_t    reqPlLen;
+    
+    uint8_t*    respPl;
+    uint16_t    respPlLen;
+    
+    bool        crcComp;
+    bool        commSuccess;
+    
+} VN100_COMM_PKT;
 
-// IMU Measurements (ID 54)
-static struct
+// Communication Protocol Payload.
+typedef struct __attribute__ ((packed))
+{
+    uint8_t  serialCount;
+    uint8_t  serialStatus;
+    uint8_t  spiCount;
+    uint8_t  spiStatus;
+    uint8_t  serialChecksum;
+    uint8_t  spiChecksum;
+    uint8_t  errorMode;
+    
+}VN100_COMM_PROTO_PL;
+
+// IMU Measurement Payload.
+typedef struct __attribute__ ((packed))
+{
+    float            magX;              // Uncompensated magnetic X-axis.
+    float            magY;              // Uncompensated magnetic Y-axis.
+    float            magZ;              // Uncompensated magnetic Z-axis.
+    float            accelX;            // Uncompensated acceleration X-axis.
+    float            accelY;            // Uncompensated acceleration Y-axis.
+    float            accelZ;            // Uncompensated acceleration Z-axis.
+    float            gyroX;             // Uncompensated angular rate X-axis.
+    float            gyroY;             // Uncompensated angular rate Y-axis.
+    float            gyroZ;             // Uncompensated angular rate Z-axis.
+    float            temp;              // IMU temperature.
+    float            pressure;          // Barometric pressure.
+    
+    VN100_VPE_STATUS vpeStatus;         // Vector Processing Engine Status.
+    uint32_t         syncInTime;        // Time since last SyncIn trigger.
+    
+} VN100_IMU_MEAS_PL;
+
+// YPR Measurement Payload.
+typedef struct __attribute__ ((packed))
 {
     float            yaw;               
     float            pitch;             
     float            roll;    
+    
     VN100_VPE_STATUS vpeStatus;
     uint32_t         syncInTime;
     
-} yprMeasurements;
+} VN100_YPR_MEAS_PL;
 
-FMUCOMM_IMU_DATA imuData;
+// *****************************************************************************
+// ************************** Definitions **************************************
+// *****************************************************************************
 
+FMUCOMM_IMU_DATA_PL vn100_lan_imu_data;
     
-static uint8_t vn100XferBuf[ VN100_XFER_BUF_SIZE ];
+//
+// Communication Protocol Control Data -----------------------------------------
+//
+
+static const VN100_COMM_PROTO_PL vn100_comm_proto_pl =
+{
+    0,    // serialCount    - N/A, SPI used. 
+    0,    // serialStatus   - N/A, SPI used.  
+    2,    // spiCount       - Append SPI messages with SyncIn Time.
+    1,    // spiStatus      - Append SPI messages with VPE status.
+    0,    // serialChecksum - N/A, SPI used.
+    3,    // spiChecksum    - Append SPI messages with a 16-bit CRC.
+    0,    // errorMode      - N/A, SPI used.
+};
+
+static VN100_COMM_PKT vn100_comm_proto_pkt = 
+{
+    .cmdID       = VN100_WRITE_REG_CMD,
+    .arg         = 30,
+    
+    .reqPl       = (uint8_t*) &vn100_comm_proto_pl,
+    .reqPlLen    = sizeof( vn100_comm_proto_pl ),
+    
+    .respPl      = NULL,                            // Don't care about response field.
+    .respPlLen   = sizeof( vn100_comm_proto_pl ),   // Still need to read response field.
+    
+    .crcComp     = false,       // CRC not computed since VN100 not yet configured.
+    .commSuccess = false,
+};
+
+//
+// IMU Measurement Data --------------------------------------------------------
+//
+
+static VN100_IMU_MEAS_PL vn100_imu_meas_pl;
+
+static VN100_COMM_PKT vn100_imu_meas_pkt = 
+{
+    .cmdID      = VN100_READ_REG_CMD,
+    .arg        = 54,
+    
+    .reqPl      = NULL,
+    .reqPlLen   = 0,
+            
+    .respPl     = (uint8_t*) &vn100_imu_meas_pl,
+    .respPlLen  = sizeof( vn100_imu_meas_pl ),   
+    
+    .crcComp     = true,
+    .commSuccess = false,
+};
+
+//
+// YPR Measurement Data --------------------------------------------------------
+//
+
+static VN100_YPR_MEAS_PL vn100_ypr_meas_pl;
+
+static VN100_COMM_PKT vn100_ypr_meas_pkt = 
+{
+    .cmdID      = VN100_READ_REG_CMD,
+    .arg        = 8,
+    
+    .reqPl      = NULL,
+    .reqPlLen   = 0,
+            
+    .respPl     = (uint8_t*) &vn100_ypr_meas_pl,
+    .respPlLen  = sizeof( vn100_ypr_meas_pl ),   
+    
+    .crcComp     = true,
+    .commSuccess = false,
+};
 
 // *****************************************************************************
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-static int VN100Init();
-void VN100PktBuildData( void );
-static unsigned int VN100RegSizeGet(VN100_REG_E reg);
-
-static bool VN100ReadReg(  VN100_REG_E reg, void* regData );
-static bool VN100WriteReg( VN100_REG_E reg, void* regData );
+static void VN100LANBuildData( void );
+static bool VN100Comm( VN100_COMM_PKT* pkt );
 
 // *****************************************************************************
 // ************************** Global Functions *********************************
@@ -229,74 +241,59 @@ void VN100Task( void )
 {
     static enum
     {
-        SM_INIT,
-        SM_SPI_IMU_GET,
-        SM_SPI_YPR_GET,
-        SM_LAN_DATA_BUILD,
-        SM_LAN_DATA_SEND,
-        SM_DELAY,
+        SM_INIT,            // Initialize the VN-100 peripheral.
+        SM_SPI_IMU_GET,     // Get IMU data - i.e. mag, accel, gyro, temp, pressure.
+        SM_SPI_YPR_GET,     // Get YPR data - i.e. yaw, pitch, roll.
+        SM_LAN_DATA_BUILD,  // Build LAN/Ethernet data for transfer.
+        SM_LAN_DATA_SEND,   // Sent the constructed LAN/Ethernet data.
+        SM_DELAY,           // Delay required time for periodic transfer of data.
                 
     } vn100TaskState = SM_INIT;
-
-    VN100_SPI_PKT* pkt_p;
 
     switch (vn100TaskState)
     {
         case SM_INIT:
         {
-            // Perform initialization until complete.
-            if ( VN100Init() == 0 )
+            // Write the Communication Protocol Control register until
+            // communication is completed.
+            if( VN100Comm( &vn100_comm_proto_pkt ) == true )
             {
-                vn100TaskState++;
+                // Register was successfully written ?
+                //
+                // Note: if not successfully written, the state machine will
+                // retain and current state and the register will attempt to
+                // be re-written.
+                //
+                if( vn100_comm_proto_pkt.commSuccess == true )
+                {
+                    vn100TaskState++;
+                }
             }
             break;
         }
         case SM_SPI_IMU_GET:
         {
-            pkt_p = VN100ReadReg( VN100_REG_IMU );
-            
-            // Reading of register is complete ?
-            if( pkt_p != 0 )
+            // Read IMU measurement data until communication is completed.
+            if( VN100Comm( &vn100_imu_meas_pkt ) == true )
             {
-                // Error did not occur with register read?  If error did occur, 
-                // the register will attempt to be re-read.
-                if( pkt_p->header.response.errID == VN100_ERR_NONE )
-                {
-                    // Copy the read data to module data.
-                    memcpy( &imuMeasurements,
-                            pkt_p->payload,
-                            sizeof( imuMeasurements ) );
-
-                    vn100TaskState++;
-                }
+                vn100TaskState++;
             }
             break;
         }
         case SM_SPI_YPR_GET:
         {
-            pkt_p = VN100ReadReg( VN100_REG_YPR );
-            
-            // Reading of register is complete ?
-            if( pkt_p != 0 )
+            // Read YPR measurement data until communication is completed.
+            if( VN100Comm( &vn100_ypr_meas_pkt ) == true )
             {
-                // Error did not occur with register read?  If error did occur, 
-                // the register will attempt to be re-read.
-                if( pkt_p->header.response.errID == VN100_ERR_NONE )
-                {
-                    // Copy the read data to module data.
-                    memcpy( &yprMeasurements,
-                            pkt_p->payload,
-                            sizeof( yprMeasurements ) );
-
-                    vn100TaskState++;
-                }
+                vn100TaskState++;
             }
             break;
         }
         case SM_LAN_DATA_BUILD:
         {
-            // Build the data field in the ethernet packet.
+            // Build the data field in the LAN/Ethernet packet.
             VN100LANBuildData();
+            
             vn100TaskState++;
             
             break;
@@ -307,10 +304,14 @@ void VN100Task( void )
             
             // Queue packet for transmission.
             pktSuccess = FMUCommSet( FMUCOMM_TYPE_IMU_DATA,
-                                     (uint8_t*) &imuData,
-                                     sizeof( imuData ) );
+                                     (uint8_t*) &vn100_lan_imu_data,
+                                     sizeof( vn100_lan_imu_data ) );
             
             // Packed successfully queued for transmission ?
+            //
+            // Note: if unsuccessfully current machine state will be retained
+            // and packet will attempt to be re-queued.
+            //
             if( pktSuccess == true )
             {
                 vn100TaskState++;
@@ -351,443 +352,121 @@ void VN100Task( void )
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
-// Note: Synchronization Control register is not set (i.e. left as default)
-// since the VN100 is operated with GPS synchronized sampling.  Since
-// the VN100 annunciates elapsed time since the GPS trigger and the 
-// MCU also monitors this trigger, precise sampling time can be determined.
-// 
-static bool VN100Init()
+// Build the LAN/Ethernet data for transmission.
+//
+// Note: 'SyncIn' timers received from VN100 are in big-endian format while
+// all other fields are in little-endian format.
+//
+static void VN100LANBuildData( void )
 {
-    const struct
-    {
-        uint8_t  serialCount;
-        uint8_t  serialStatus;
-        uint8_t  spiCount;
-        uint8_t  spiStatus;
-        uint8_t  serialChecksum;
-        uint8_t  spiChecksum;
-        uint8_t  errorMode;
-    } reg_prot_val = {
-        0,    // serialCount    - N/A, SPI used. 
-        0,    // serialStatus   - N/A, SPI used.  
-        2,    // spiCount       - Append SPI messages with SyncIn Time.
-        1,    // spiStatus      - Append SPI messages with VPE status.
-        0,    // serialChecksum - N/A, SPI used.
-        3,    // spiChecksum    - Append SPI messages with a 16-bit CRC.
-        0,    // errorMode      - N/A, SPI used.
-    };
-            
-    return VN100WriteReg( VN100_REG_PROT, (void*) &reg_prot_val );
-}
-
-
-//==============================================================================
-
-void VN100LANBuildData( void )
-{
-    uint16_t calcCRC;
+    vn100_lan_imu_data.fmuTime       = CoreTime64usGet();
+    vn100_lan_imu_data.imuType       = VN100_IMU_TYPE;
     
-    imuData.fmuTime = CoreTime64usGet();
-    imuData.imuType = VN100_IMU_TYPE;
+    vn100_lan_imu_data.imuTimeSyncIn = vn100_imu_meas_pl.syncInTime;
+    vn100_lan_imu_data.magX          = vn100_imu_meas_pl.magX;
+    vn100_lan_imu_data.magY          = vn100_imu_meas_pl.magY;
+    vn100_lan_imu_data.magZ          = vn100_imu_meas_pl.magZ;
+    vn100_lan_imu_data.accelX        = vn100_imu_meas_pl.accelX;
+    vn100_lan_imu_data.accelY        = vn100_imu_meas_pl.accelY;
+    vn100_lan_imu_data.accelZ        = vn100_imu_meas_pl.accelZ;
+    vn100_lan_imu_data.gyroX         = vn100_imu_meas_pl.gyroX;
+    vn100_lan_imu_data.gyroY         = vn100_imu_meas_pl.gyroY;
+    vn100_lan_imu_data.gyroZ         = vn100_imu_meas_pl.gyroZ;
+    vn100_lan_imu_data.temp          = vn100_imu_meas_pl.temp;
+    vn100_lan_imu_data.pressure      = vn100_imu_meas_pl.pressure;
     
-    imuData.imuTimeSyncIn = imuMeasurements.syncInTime;
-    imuData.magX          = imuMeasurements.magX;
-    imuData.magY          = imuMeasurements.magY;
-    imuData.magZ          = imuMeasurements.magZ;
-    imuData.accelX        = imuMeasurements.accelX;
-    imuData.accelY        = imuMeasurements.accelY;
-    imuData.accelZ        = imuMeasurements.accelZ;
-    imuData.gyroX         = imuMeasurements.gyroX;
-    imuData.gyroY         = imuMeasurements.gyroY;
-    imuData.gyroZ         = imuMeasurements.gyroZ;
-    imuData.temp          = imuMeasurements.temp;
-    imuData.pressure      = imuMeasurements.pressure;
-    
-    imuData.attTimeSyncIn = yprMeasurements.syncInTime;
-    imuData.yaw           = yprMeasurements.yaw;
-    imuData.pitch         = yprMeasurements.pitch;
-    imuData.roll          = yprMeasurements.roll;
+    vn100_lan_imu_data.attTimeSyncIn = vn100_ypr_meas_pl.syncInTime;
+    vn100_lan_imu_data.yaw           = vn100_ypr_meas_pl.yaw;
+    vn100_lan_imu_data.pitch         = vn100_ypr_meas_pl.pitch;
+    vn100_lan_imu_data.roll          = vn100_ypr_meas_pl.roll;
     
     // Default all data as valid; data set invalid if issue exists.
-    imuData.imuValid.mag    = 1;
-    imuData.imuValid.accel  = 1;
-    imuData.imuValid.gyro   = 1;
-    imuData.imuValid.temp   = 1;
-    imuData.imuValid.press  = 1;
-    imuData.imuValid.att    = 1;
+    vn100_lan_imu_data.imuValid.mag    = 1;
+    vn100_lan_imu_data.imuValid.accel  = 1;
+    vn100_lan_imu_data.imuValid.gyro   = 1;
+    vn100_lan_imu_data.imuValid.temp   = 1;
+    vn100_lan_imu_data.imuValid.press  = 1;
+    vn100_lan_imu_data.imuValid.att    = 1;
     
-    // Calculate the CRC of IMU measurement data.
-    calcCRC = utilCRC16( (void*) &imuMeasurements, sizeof( imuMeasurements ), 0 );
-    
-    // Calculate CRC does not match that sent ?
-    if( calcCRC != imuMeasurements.crc16 )
+    // IMU Measurement data reception unsuccessfully ?
+    if( vn100_imu_meas_pkt.commSuccess == false )
     {
-        // invalidate IMU measurement data
-        imuData.imuValid.mag    = 0;
-        imuData.imuValid.accel  = 0;
-        imuData.imuValid.gyro   = 0;
-        imuData.imuValid.temp   = 0;
-        imuData.imuValid.press  = 0;
+        vn100_lan_imu_data.imuValid.mag    = 0;
+        vn100_lan_imu_data.imuValid.accel  = 0;
+        vn100_lan_imu_data.imuValid.gyro   = 0;
+        vn100_lan_imu_data.imuValid.temp   = 0;
+        vn100_lan_imu_data.imuValid.press  = 0;
+    }
+    else
+    {
+        // Issue with magnetometer data ?
+        if( ( vn100_imu_meas_pl.vpeStatus.MagDisturbance        != 0 ) ||
+            ( vn100_imu_meas_pl.vpeStatus.MagSaturation         != 0 ) ||
+            ( vn100_imu_meas_pl.vpeStatus.KnownAccelDisturbance != 0 ) )
+        {
+            vn100_lan_imu_data.imuValid.mag = 0;
+        }
+
+        // Issue with accelerometer data ?
+        if( ( vn100_imu_meas_pl.vpeStatus.AccDisturbance        != 0 ) ||
+            ( vn100_imu_meas_pl.vpeStatus.AccSaturation         != 0 ) ||
+            ( vn100_imu_meas_pl.vpeStatus.KnownAccelDisturbance != 0 ) )
+        {
+            vn100_lan_imu_data.imuValid.accel = 0;
+        }
+
+        // Issue with gyroscope data ?
+        if( ( vn100_imu_meas_pl.vpeStatus.GyroSaturation         != 0 ) ||
+            ( vn100_imu_meas_pl.vpeStatus.GyroSaturationRecovery != 0 ) )
+        {
+            vn100_lan_imu_data.imuValid.gyro = 0;
+        }
     }
     
-    // Issue with magnetometer data ?
-    if( ( imuMeasurements.vpeStatus.MagDisturbance        != 0 ) ||
-        ( imuMeasurements.vpeStatus.MagSaturation         != 0 ) ||
-        ( imuMeasurements.vpeStatus.KnownAccelDisturbance != 0 ) )
+    // YPR Measurement data reception unsuccessfully ?
+    if( vn100_ypr_meas_pkt.commSuccess == false )
     {
-        imuData.imuValid.mag = 0;
+        vn100_lan_imu_data.imuValid.att = 0;
     }
-    
-    // Issue with accelerometer data ?
-    if( ( imuMeasurements.vpeStatus.AccDisturbance        != 0 ) ||
-        ( imuMeasurements.vpeStatus.AccSaturation         != 0 ) ||
-        ( imuMeasurements.vpeStatus.KnownAccelDisturbance != 0 ) )
+    else
     {
-        imuData.imuValid.accel = 0;
-    }
-    
-    // Issue with gyroscope data ?
-    if( ( imuMeasurements.vpeStatus.GyroSaturation         != 0 ) ||
-        ( imuMeasurements.vpeStatus.GyroSaturationRecovery != 0 ) )
-    {
-        imuData.imuValid.gyro = 0;
-    }
-   
-    // Calculate the CRC of YPR measurement data.
-    calcCRC = utilCRC16( (void*) &yprMeasurements,  sizeof( yprMeasurements ), 0 );
-    
-    // Calculate CRC does not match that sent ?
-    if( calcCRC != yprMeasurements.crc16 )
-    {
-        // invalidate YPR measurement data
-        imuData.imuValid.att = 0;
-    }
-    
-    // Attitude quality is not Excellent or Good ?
-    if( yprMeasurements.vpeStatus.AttitudeQuality > 1 )
-    {
-        imuData.imuValid.att = 0;
+        // Attitude quality is not Excellent or Good ?
+        if( vn100_ypr_meas_pl.vpeStatus.AttitudeQuality > 1 )
+        {
+            vn100_lan_imu_data.imuValid.att = 0;
+        }
     }
 }
 
-// For a Write Register transaction, the request packed payload contains
-// the value to write to the selected register.  The response payload contains
-// the value written to the register, but only the error code in the header
-// is needed to be inspected to verify if the write was successful.
+//==============================================================================
+
+// Preform Request and Response communication transfer with the VN100.
 //
-static bool VN100WriteReg( VN100_REG_E reg, void* regData )
-{
-    static const uint8_t  VN100_CMD_WRITE_REG = 0x02;
-    static       SPI_XFER vn100spi;
-                 bool     writeSuccess = false;
-    
-    static enum
-    {
-        SM_REQUEST_START,
-        SM_REQUEST_FINISH,
-        SM_WAIT,
-        SM_RESPONSE_START,
-        SM_RESPONSE_FINISH,
-                
-    } writeRegState = SM_REQUEST_START;
-    
-    switch( writeRegState )
-    {
-        case SM_REQUEST_START:
-        {
-            uint16_t regLen = vn100_reg_cfg[ reg ].regLen;
-            uint16_t calcCRC;
-            
-            // Build header field.
-            vn100XferBuf[ 0 ] = VN100_CMD_WRITE_REG;
-            vn100XferBuf[ 1 ] = vn100_reg_cfg[ reg ].regID;
-            vn100XferBuf[ 2 ] = 0;
-            vn100XferBuf[ 3 ] = 0;
-            
-            // Copy payload to transfer buffer.
-            memcpy( &vn100XferBuf[ VN100_SPI_HEADER_SIZE ], regData, regLen );
-            
-            // Calculate CRC of packet.
-            calcCRC = utilCRC16( (void*) &vn100XferBuf[ 0 ], 
-                                 VN100_SPI_HEADER_SIZE + regLen,
-                                 0 );
-            
-            // Append calculated CRC to packet.
-            memcpy( &vn100XferBuf[ VN100_SPI_HEADER_SIZE + regLen ], calcCRC, VN100_SPI_CRC_SIZE );
-
-            // Set up VN100 packet for SPI transfer.
-            vn100spi.port   = VN100_SPI_PORT;
-            vn100spi.rxBuf  = NULL;
-            vn100spi.txBuf  = &vn100XferBuf[ 0 ];
-            vn100spi.length = VN100_SPI_HEADER_SIZE + regLen + VN100_SPI_CRC_SIZE;
-
-            // Message successfully queued for transfer ?
-            if( SPIXfer( &vn100spi ) == 0 )
-            {
-                writeRegState++;
-            }
-            break;
-        }
-        case SM_REQUEST_FINISH:
-        {
-            // SPI transfer of Request Packet is complete ?
-            if (vn100spi.xferDone != 0)
-            {
-                writeRegState++;
-            }
-            else
-            {
-                break;
-            }
-            // No break - continue immediately with next state if transfer done.
-        }
-        case SM_WAIT:
-        {
-            static uint32_t startTime = 0;
-            
-            // Setup start-time at beginning of delay.
-            if( startTime == 0 )
-            {
-                startTime = CoreTime32usGet();
-            }
-            
-            // Required time has elapsed ?
-            // 
-            // Note: Must delay at least 50us before issuing the response packet
-            // to satisfy VN100 operation. Buffer is added to wait no less
-            // than 100us.
-            // 
-            if( CoreTime32usGet() - startTime > 100 )
-            {
-                writeRegState++;
-                
-                // Clear the start time for evaluation on next delay.
-                startTime = 0;
-            }
-            else
-            {
-                break;
-            }
-            // No break - continue immediately with next state if delay elapsed.
-        }
-        case SM_RESPONSE_START:
-        {
-            uint16_t regLen = vn100_reg_cfg[ reg ].regLen;
-            
-            // Set up VN100 packet for SPI transfer.
-            vn100spi.port   = VN100_SPI_PORT;
-            vn100spi.rxBuf  = &vn100XferBuf[ 0 ];
-            vn100spi.txBuf  = NULL;
-            vn100spi.length = VN100_SPI_HEADER_SIZE + 
-                              regLen +
-                              VN100_SPI_VPE_SIZE + 
-                              VN100_SPI_CRC_SIZE;
-
-            // Message successfully queued for transfer ?
-            if( SPIXfer( &vn100spi ) == 0 )
-            {
-                writeRegState++;
-            }
-            break;
-        }
-        case SM_RESPONSE_FINISH:
-        {
-            // SPI transfer of Response Packet is complete ?
-            if( vn100spi.xferDone != 0 )
-            {
-                // Calculate received data CRC.
-                uint16_t calcCRC = utilCRC16( (void*) &vn100XferBuf[ 0 ], 
-                                              VN100_SPI_HEADER_SIZE + regLen + VN100_SPI_VPE_SIZE + VN100_SPI_CRC_SIZE,
-                                              0 );
-                
-                // All of the following data is correct ?
-                //  - Command matches that transmitted.
-                //  - Register ID matches that transmitted.
-                //  - Error ID = 0, i.e. no errors occurred.
-                //  - Data is valid, i.e. CRC is correct.
-                //
-                if( ( vn100XferBuf[ 1 ] == VN100_CMD_WRITE_REG        ) &&
-                    ( vn100XferBuf[ 2 ] == vn100_reg_cfg[ reg ].regID ) &&
-                    ( vn100XferBuf[ 3 ] == 0                          ) &&
-                    ( calcCRC           == 0                          ) )
-                {
-                    writeSuccess = true;
-                }
-                
-                // Re-start state machine.
-                writeRegState = SM_REQUEST_START;
-            }
-            break;
-        }
-    }
-    return writeSuccess;
-}
-
-
-//==============================================================================
-
-static bool VN100ReadReg( VN100_REG_E reg )
-{
-    static const uint8_t  VN100_CMD_READ_REG = 0x01;
-    static       SPI_XFER vn100spi;
-                 bool     readSuccess = false;
-
-    static enum
-    {
-        SM_REQUEST_START,
-        SM_REQUEST_FINISH,
-        SM_WAIT,
-        SM_RESPONSE_START,
-        SM_RESPONSE_FINISH,
-                
-    } readRegState = SM_REQUEST_START;
-
-    switch( readRegState )
-    {
-        case SM_REQUEST_START:
-        {
-            uint16_t regLen = vn100_reg_cfg[ reg ].regLen;
-            uint16_t calcCRC;
-            
-            // Build header field.
-            vn100XferBuf[ 0 ] = VN100_CMD_READ_REG;
-            vn100XferBuf[ 1 ] = vn100_reg_cfg[ reg ].regID;
-            vn100XferBuf[ 2 ] = 0;
-            vn100XferBuf[ 3 ] = 0;
-            
-            // Calculate CRC of packet.
-            calcCRC = utilCRC16( (void*) &vn100XferBuf[ 0 ], 
-                                 VN100_SPI_HEADER_SIZE,
-                                 0 );
-            
-            // Append calculated CRC to packet.
-            memcpy( &vn100XferBuf[ VN100_SPI_HEADER_SIZE ], calcCRC, VN100_SPI_CRC_SIZE );
-
-            // Set up VN100 packet for SPI transfer.
-            vn100spi.port   = VN100_SPI_PORT;
-            vn100spi.rxBuf  = NULL;
-            vn100spi.txBuf  = &vn100XferBuf[ 0 ];
-            vn100spi.length = VN100_SPI_HEADER_SIZE + regLen + VN100_SPI_CRC_SIZE;
-
-            // Message successfully queued for transfer ?
-            if( SPIXfer( &vn100spi ) == 0 )
-            {
-                writeRegState++;
-            }
-            break;
-            
-            
-            // Populate the VN100 packet.
-            pkt.header.request.cmdID = VN100_CMD_READ_REG;
-            pkt.header.request.regID = reg;
-            pkt.header.request.zero_0 = 0;
-            pkt.header.request.zero_1 = 0;
-
-            // Set up VN100 packet for SPI transfer of Request Packet.
-            vn100spi.rxBuf = 0;
-            vn100spi.txBuf = (uint8_t*)&pkt;
-            vn100spi.length = sizeof(pkt.header.request);
-
-            // Message successfully queued for transfer ?
-            if (SPIXfer(&vn100spi) == 0)
-            {
-                readRegState = SM_REQUEST_FINISH;
-            }
-            break;
-        }
-        case SM_REQUEST_FINISH:
-        {
-            // SPI transfer of Request Packet is complete ?
-            if (vn100spi.xferDone != 0)
-            {
-                requestTime = CoreTime32usGet();
-                readRegState = SM_WAIT;
-            }
-            break;
-        }
-        case SM_WAIT:
-        {
-            // Per VN-100 user manual, wait at least 50us before
-            // issuing the response packet.
-            if ((CoreTime32usGet() - requestTime) < 100)
-            {
-                break;
-            }
-            else
-            {
-                readRegState = SM_RESPONSE_START;
-            }
-            // No break.
-        }
-        case SM_RESPONSE_START:
-        {
-            // Set up VN100 packet for SPI transfer of Response Packet.
-            vn100spi.rxBuf = (uint8_t*)&pkt;
-            vn100spi.txBuf = 0;
-            vn100spi.length = 
-                    VN100RegSizeGet(reg) + 4;   // Add 4-byte response header.
-
-            // Message successfully queued for transfer ?
-            if (SPIXfer(&vn100spi) == 0)
-            {
-                readRegState = SM_RESPONSE_FINISH;
-            }
-            break;
-        }
-        case SM_RESPONSE_FINISH:
-        {
-            // SPI transfer of Response Packet is complete ?
-            if (vn100spi.xferDone != 0)
-            {
-                // Re-start state machine and return Response Packet alias.
-                readRegState = SM_REQUEST_START;
-                retVal = &pkt;
-            }
-            break;
-        }
-    }
-    return retVal;
-}
-
-
-//==============================================================================
-
 // Calling function should set up elements:
 //  - arg
 //  - cmdID
 //  - reqPl
 //  - reqPlLen
 //  - respPlLen
+//  - respPl (pointer)
+//  - crcComp
 // This function will populate the following elements based upon the response
 // data received.
-//  - respPl
+//  - respPl (value if not NULL)
 //  - respStat
 //  - respCnt
+//  - commDone
 //
 // Additionally the function returns a Boolean flag to identify successful
 // execution of the transfer.
 //
-typedef struct
-{
-    uint8_t     arg;
-    uint8_t     cmdID;
-    
-    uint8_t*    reqPl;
-    uint16_t    reqPlLen;
-    
-    uint8_t*    respPl;
-    uint16_t    respPlLen;
-    uint16_t    respStat;
-    uint16_t    respCnt;
-    
-} VN100_COMM_PKT;
-
 static bool VN100Comm( VN100_COMM_PKT* pkt )
-{   
-    static const SPI_PORT VN100_SPI_PORT      = SPI_PORT_SPI2;
-    static const uint8_t  VN100_CMD_WRITE_REG = 0x02;
+{
+    static uint8_t vn100XferBuf[ VN100_XFER_BUF_SIZE ];
+    
+    static const SPI_PORT VN100_SPI_PORT = SPI_PORT_SPI2;
     static       SPI_XFER vn100spi;
-                 bool     successFlag         = false;
+                 bool     commDone       = false;
     
     static enum
     {
@@ -797,43 +476,59 @@ static bool VN100Comm( VN100_COMM_PKT* pkt )
         SM_RESPONSE_START,
         SM_RESPONSE_FINISH,
                 
-    } writeRegState = SM_REQUEST_START;
+    } commState = SM_REQUEST_START;
     
-    switch( writeRegState )
+    // Default transfer not to successful.
+    pkt->commSuccess = false;
+    
+    // Execute the state machine.
+    switch( commState )
     {
         case SM_REQUEST_START:
         {
             uint16_t calcCRC;
             
             // Build header field.
-            vn100XferBuf[ 0 ] = pkt->arg;
-            vn100XferBuf[ 1 ] = pkt->cmdID;
+            vn100XferBuf[ 0 ] = pkt->cmdID;
+            vn100XferBuf[ 1 ] = pkt->arg;
             vn100XferBuf[ 2 ] = 0;
             vn100XferBuf[ 3 ] = 0;
             
-            // Copy payload to transfer buffer.
+            // Copy payload to transfer buffer after the header field.
             memcpy( &vn100XferBuf[ VN100_SPI_HEADER_SIZE ], pkt->reqPl, pkt->reqPlLen );
             
-            // Calculate CRC of packet.
-            calcCRC = utilCRC16( (void*) &vn100XferBuf[ 0 ], 
-                                 mVN100_SPI_REQ_CRC_OFFSET( pkt->reqPlLen ),
-                                 0 );
-            
-            // Append calculated CRC to packet.
-            memcpy( &vn100XferBuf[ mVN100_SPI_REQ_CRC_OFFSET( pkt->reqPlLen ) ],
-                    calcCRC,
-                    VN100_SPI_CRC_SIZE );
+            // CRC is to be computed ?
+            if( pkt->crcComp == true )
+            {
+                // Calculate CRC of packet.
+                calcCRC = utilCRC16( (void*) &vn100XferBuf[ 0 ], 
+                                     mVN100_SPI_CRC_OFFSET( pkt->reqPlLen ),
+                                     0 );
+
+                // Append calculated CRC to packet after the payload.
+                //
+                // Note: Endianness of CRC needs to be swapped.
+                //
+                vn100XferBuf[ mVN100_SPI_CRC_OFFSET( pkt->reqPlLen ) + 0 ] = (uint8_t) ( ( calcCRC >> 8 ) & 0x00FF );
+                vn100XferBuf[ mVN100_SPI_CRC_OFFSET( pkt->reqPlLen ) + 1 ] = (uint8_t) ( ( calcCRC >> 0 ) & 0x00FF );
+                
+                // Set the VN100 SPI transfer length
+                vn100spi.length = mVN100_SPI_PKT_SIZE( pkt->reqPlLen );
+            }
+            else
+            {
+                vn100spi.length = mVN100_SPI_PKT_SIZE_NOCRC( pkt->reqPlLen );
+            }
 
             // Set up VN100 packet for SPI transfer.
             vn100spi.port   = VN100_SPI_PORT;
             vn100spi.rxBuf  = NULL;
             vn100spi.txBuf  = &vn100XferBuf[ 0 ];
-            vn100spi.length = mVN100_SPI_REQ_PKT_SIZE( pkt->reqPlLen );
-
+            
             // Message successfully queued for transfer ?
             if( SPIXfer( &vn100spi ) == 0 )
             {
-                writeRegState++;
+                commState++;
             }
             break;
         }
@@ -842,7 +537,7 @@ static bool VN100Comm( VN100_COMM_PKT* pkt )
             // SPI transfer of Request Packet is complete ?
             if (vn100spi.xferDone != 0)
             {
-                writeRegState++;
+                commState++;
             }
             else
             {
@@ -868,7 +563,7 @@ static bool VN100Comm( VN100_COMM_PKT* pkt )
             // 
             if( CoreTime32usGet() - startTime > 100 )
             {
-                writeRegState++;
+                commState++;
                 
                 // Clear the start time for evaluation on next delay.
                 startTime = 0;
@@ -885,12 +580,21 @@ static bool VN100Comm( VN100_COMM_PKT* pkt )
             vn100spi.port   = VN100_SPI_PORT;
             vn100spi.rxBuf  = &vn100XferBuf[ 0 ];
             vn100spi.txBuf  = NULL;
-            vn100spi.length = mVN100_SPI_RESP_PKT_SIZE( pkt->respPlLen );
+            
+            // CRC is to be computed ?
+            if( pkt->crcComp == true )
+            {
+                vn100spi.length = mVN100_SPI_PKT_SIZE( pkt->respPlLen );
+            }
+            else
+            {
+                vn100spi.length = mVN100_SPI_PKT_SIZE_NOCRC( pkt->respPlLen );
+            }
 
             // Message successfully queued for transfer ?
             if( SPIXfer( &vn100spi ) == 0 )
             {
-                writeRegState++;
+                commState++;
             }
             break;
         }
@@ -899,10 +603,16 @@ static bool VN100Comm( VN100_COMM_PKT* pkt )
             // SPI transfer of Response Packet is complete ?
             if( vn100spi.xferDone != 0 )
             {
-                // Calculate received data CRC.
-                uint16_t calcCRC = utilCRC16( (void*) &vn100XferBuf[ 0 ], 
-                                              mVN100_SPI_RESP_PKT_SIZE( pkt->respPlLen ),
-                                              0 );
+                uint16_t calcCRC = 0;
+                
+                // CRC is to be computed ?
+                if( pkt->crcComp == true )
+                {
+                    // Calculate received data CRC.
+                    calcCRC = utilCRC16( (void*) &vn100XferBuf[ 0 ], 
+                                         mVN100_SPI_PKT_SIZE( pkt->respPlLen ),
+                                         0 );
+                }
                 
                 // All of the following data is correct ?
                 //  - Argument matches that transmitted.
@@ -910,36 +620,33 @@ static bool VN100Comm( VN100_COMM_PKT* pkt )
                 //  - Error ID = 0, i.e. no errors occurred.
                 //  - Data is valid, i.e. received CRC is correct.
                 //
-                if( ( vn100XferBuf[ 1 ] == pkt->arg   ) &&
-                    ( vn100XferBuf[ 2 ] == pkt->cmdID ) &&
+                if( ( vn100XferBuf[ 1 ] == pkt->cmdID ) &&
+                    ( vn100XferBuf[ 2 ] == pkt->arg   ) &&
                     ( vn100XferBuf[ 3 ] == 0          ) &&
                     ( calcCRC           == 0          ) )
                 {
                     // Identify the transfer as successful.
-                    successFlag = true;
+                    pkt->commSuccess = true;
                     
-                    // Populate the received response payload.
-                    memcpy( pkt->respPl,
-                            &vn100XferBuf[ VN100_SPI_HEADER_SIZE ],
-                            pkt->respPlLen );
-                    
-                    // Populate the received Serial Status.
-                    memcpy( pkt->respStat,
-                            &vn100XferBuf[ mVN100_SPI_RESP_STATUS_OFFSET( pkt->respPlLen ) ],
-                            VN100_SPI_STATUS_SIZE );
-                    
-                    // Populate the received Serial Count.
-                    memcpy( pkt->respCnt,
-                            &vn100XferBuf[ mVN100_SPI_RESP_COUNT_OFFSET( pkt->respPlLen ) ],
-                            VN100_SPI_COUNT_SIZE );
+                    // Response payload pointer to valid buffer ?
+                    if( pkt->respPl != NULL )
+                    {
+                        // Populate the received response payload.
+                        memcpy( pkt->respPl,
+                                &vn100XferBuf[ VN100_SPI_HEADER_SIZE ],
+                                pkt->respPlLen );
+                    }
                 }
                 
+                // Identify the communication transfer as complete.
+                commDone = true;
+                
                 // Re-start state machine.
-                writeRegState = SM_REQUEST_START;
+                commState = SM_REQUEST_START;
             }
             break;
         }
     }
     
-    return successFlag;
+    return commDone;
 }

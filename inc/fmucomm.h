@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief 
+/// @brief Flight Management Unit (FMU) Ethernet Communication.
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef FMUCOMM_H_
@@ -23,7 +23,7 @@
 // ************************** Defines ******************************************
 // *****************************************************************************
 
-// Host -> FMU messages.
+// Received (Host -> FMU) messages.
 typedef enum
 {
     FMUCOMM_TYPE_HOST_HEARTBEAT,
@@ -35,7 +35,7 @@ typedef enum
             
 } FMUCOMM_RX_TYPE_E;
 
-// FMU -> Host messages.
+// Transmitted (FMU -> Host) messages.
 typedef enum
 {   
     FMUCOMM_TYPE_FMU_HEARTBEAT,     
@@ -47,46 +47,8 @@ typedef enum
             
 } FMUCOMM_TX_TYPE_E;
 
-
-//
-// HOST -> FMU -----------------------------------------------------------------
-//
-
-//typedef struct
-//{
-//    uint32_t fwVersion;     // Firmware version ID.
-//    uint32_t hwVersion;     // Hardware version ID.
-//    uint32_t serialNum;     // Serial number.
-//    uint32_t msUptime;      // System uptime in milliseconds.
-//} FMUCOMM_HOST_HEARTBEAT_PKT;
-//
-//typedef struct
-//{
-//    uint8_t surfaceID;      // Control surface ID.
-//    int16_t position;       // Control surface position in 1e3 radians.
-//} FMUCOMM_CTRL_SURFACE_CMD_PL;
-//
-//typedef struct
-//{
-//    FMUCOMM_CTRL_SURFACE_CMD_PL pl[ 20 ];
-//    uint8_t                     plCnt;
-//            
-//} FMUCOMM_CTRL_SURFACE_CMD_PKT;
-//
-//typedef struct
-//{
-//    uint8_t GPSData[1024];
-//    uint8_t GPSLen;
-//    
-//} FMUCOMM_HOST_GPS_CMD_PKT;
-//
-//typedef struct
-//{
-//    uint8_t debugData[1024];
-//    uint8_t debugLen;
-//    
-//} FMUCOMM_HOST_EXCEPTION_PKT;
-
+// Communication protocol wrapper content.  Messages are wrapped with a 
+// header (header0, header1, header2, type, and length) and footer (CRC) field.
 typedef struct
 {
     uint8_t   header0;
@@ -98,8 +60,8 @@ typedef struct
     {
         struct
         {
-            uint8_t length_lsb;
-            uint8_t length_msb;
+            uint8_t lengthLsb;
+            uint8_t lengthMsb;
         };
         
         uint16_t length;
@@ -109,8 +71,8 @@ typedef struct
     {
         struct
         {
-            uint8_t crc_lsb;
-            uint8_t crc_msb;
+            uint8_t crcLsb;
+            uint8_t crcMsb;
         };
         
         uint16_t crc;
@@ -118,51 +80,84 @@ typedef struct
     
 } FMUCOMM_PKT_WRAP;
 
+// Definition of received packet.
 typedef struct
 {
+    // Flag identifying if the received packet is valid.
+    //  true  = packet is valid
+    //  false = packet is invalid; no received for the execution cycle
+    bool valid;
+    
     FMUCOMM_PKT_WRAP wrap;
     
-    uint32_t fwVersion;     // Firmware version ID.
-    uint32_t hwVersion;     // Hardware version ID.
-    uint32_t serialNum;     // Serial number.
-    uint32_t msUptime;      // System uptime in milliseconds.
+    uint8_t* pl_p;
     
-} FMUCOMM_HOST_HEARTBEAT_PKT;
+} FMUCOMM_RX_PKT;
 
-typedef struct
+//
+// Received (HOST -> FMU) Message Payload Definition ---------------------------
+//
+
+typedef struct __attribute__ ((packed))
 {
-    FMUCOMM_PKT_WRAP wrap;
-    
-    struct
+    union
     {
-        uint8_t  ID;
-        uint16_t pos;
+        struct
+        {
+            uint32_t fwVersion;     // Firmware version ID.
+            uint32_t hwVersion;     // Hardware version ID.
+            uint32_t serialNum;     // Serial number.
+            uint32_t msUptime;      // System uptime in milliseconds.
+        };
         
-    } ctrlSurface[ 20 ];
+        uint8_t pl_u8[ 16 ];
+    };
+    
+} FMUCOMM_HOST_HEARTBEAT_PL;
+
+typedef struct __attribute__ ((packed))
+{
+    union
+    {
+        struct
+        {
+            uint8_t  ID;
+            uint16_t pos;
+
+        } ctrlSurface[ 20 ];
+        
+        uint8_t pl_u8[ 60 ];
+    };
             
-} FMUCOMM_CTRL_SURFACE_CMD_PKT;
+} FMUCOMM_CTRL_SURFACE_CMD_PL;
 
-typedef struct
-{
-    FMUCOMM_PKT_WRAP wrap;
+typedef struct __attribute__ ((packed))
+{    
+    union
+    {
+        uint8_t GPSData[ 1024 ];
+        
+        uint8_t pl_u8[ 1024 ];
+    };
     
-    uint8_t GPSData[1024];
-    
-} FMUCOMM_HOST_GPS_CMD_PKT;
+} FMUCOMM_HOST_GPS_CMD_PL;
 
-typedef struct
+typedef struct __attribute__ ((packed))
 {
-    FMUCOMM_PKT_WRAP wrap;
+    union
+    {
+        uint8_t debugData[ 1024 ];
+        
+        uint8_t pl_u8[ 1024 ];
+    };
     
-    uint8_t debugData[1024];
-    
-} FMUCOMM_HOST_EXCEPTION_PKT;
+} FMUCOMM_HOST_EXCEPTION_PL;
 
 //
-// FMU -> HOST -----------------------------------------------------------------
+// Transmitted (FMU -> HOST) Message Payload Definition ------------------------
 //
 
-typedef struct
+typedef struct __attribute__ ((packed))
 {
     uint32_t fwVersion;     // Firmware version ID.
     uint32_t hwVersion;     // Hardware version ID.
@@ -170,8 +165,7 @@ typedef struct
     uint32_t msUptime;      // System uptime in milliseconds.
     uint16_t inputVoltage;  // Input voltage in millivolts.
     int16_t  boardTemp;     // Board temperature in 1e2 degrees Celsius.
-    
-} FMUCOMM_FMU_HEARTBEAT_PKT;
+} FMUCOMM_FMU_HEARTBEAT_PL;
 
 typedef struct __attribute__ ((packed)) 
 {
@@ -209,36 +203,36 @@ typedef struct __attribute__ ((packed))
     float    yaw;           // Estimated yaw attitude in degrees.
     float    pitch;         // Estimated pitch attitude in degrees.
     float    roll;          // Estimated roll attitude in degrees.
-} FMUCOMM_IMU_DATA;
+} FMUCOMM_IMU_DATA_PL;
 
-typedef struct
+typedef struct __attribute__ ((packed))
 {
     uint64_t fmuTime;       // FMU timestamp in nanosecones.
     uint16_t gpsType;       // GPS type: 0 = Novatel OEMStar, 1 = U-blox
     uint8_t  gpsData[1500]; // GPS receiver data.
-} FMUCOMM_GPS_DATA_PKT;
+} FMUCOMM_GPS_DATA_PL;
 
-typedef struct
+typedef struct __attribute__ ((packed))
 {
     uint8_t airDataID;      // Air data ID.
     float   staticPress;    // Static pressure in kPa.
     float   dynamicPress;   // Dynamic pressure in kPa.
     float   temperature;    // Temperature in degrees Celsius.
-} FMUCOMM_AIR_DATA_PKT;
+} FMUCOMM_AIR_DATA_PL;
 
-typedef struct
+typedef struct __attribute__ ((packed))
 {
     uint8_t  surfaceID;     // Control surface ID.
     int16_t  cmdPosition;   // Commanded surface position.
     int16_t  actPosition;   // Actual surface position.
     uint16_t inputVoltage;  // Input voltage in millivolts.
     uint16_t inputCurrent;  // Input current in milliamps.
-} FMUCOMM_CTRL_SURFACE_DATA_PKT;
+} FMUCOMM_CTRL_SURFACE_DATA_PL;
 
-typedef struct
+typedef struct __attribute__ ((packed))
 {
     uint8_t debugData[1024];
-} FMUCOMM_FMU_EXCEPTION_PKT;
+} FMUCOMM_FMU_EXCEPTION_PL;
 
 // *****************************************************************************
 // ************************** Declarations *************************************
@@ -248,11 +242,15 @@ typedef struct
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
+// Service the FMUComm module.  Communication channels are setup, and received
+// Ethernet data is processed.
 void FMUCommTask();
 
+// Queue Ethernet data for transmission.
 bool FMUCommSet( FMUCOMM_TX_TYPE_E pktType, uint8_t* pl_p, uint16_t plLen );
 
-bool FMUCommGet( FMUCOMM_RX_TYPE_E pktType, void** pkt_pp );
+// Get received Ethernet data.
+const FMUCOMM_RX_PKT* FMUCommGet( FMUCOMM_RX_TYPE_E pktType );
 
 #endif	// FMUCOMM_H_
 

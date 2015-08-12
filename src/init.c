@@ -93,6 +93,10 @@ static void InitTMR()
     IFS0CLR = _IFS0_CTIF_MASK;      // Clear core timer interrupt flag.
     IEC0SET = _IEC0_CTIE_MASK;      // Enable CT interrupts.
     
+    // Initialize Timer 4 (software I2C clock)
+    ConfigIntTimer4(T4_INT_OFF | T4_INT_PRIOR_6 | T4_INT_SUB_PRIOR_0);
+    OpenTimer4(T4_ON | T4_IDLE_CON | T4_PS_1_1, 800);       // 100 kHz
+    
     //  Timer 5 (software SPI clock)
     ConfigIntTimer5(T5_INT_OFF | T5_INT_PRIOR_7 | T5_INT_SUB_PRIOR_0);
     OpenTimer5(T5_ON | T5_IDLE_CON | T5_PS_1_1, 800);       // 100 kHz
@@ -130,6 +134,23 @@ static void InitSPI()
     IEC1CLR = _IEC1_SPI2TXIE_MASK;      // Disable SPI2 TX interrupt.
 
     SPI2CONSET = _SPI2CON_ON_MASK;      // Enable SPI peripheral.
+}
+
+static void InitI2C(void)
+{
+    // RB3 = SMBCLK
+    AD1PCFGbits.PCFG3 = 1;  // Analog input pin in digital mode.
+    ODCBbits.ODCB3 = 1;     // Open Drain
+    LATBbits.LATB3 = 1;     // Off
+    TRISBbits.TRISB3 = 0;   // Output
+
+    // RB4 = SMBDAT
+    AD1PCFGbits.PCFG4 = 1;  // Analog input pin in digital mode.
+    ODCBbits.ODCB4 = 1;     // Open Drain
+    LATBbits.LATB4 = 1;     // Off
+    TRISBbits.TRISB4 = 0;   // Output
+
+    return;
 }
 
 //==============================================================================
@@ -224,6 +245,56 @@ static void InitTCPIPStack()
 
 //==============================================================================
 
+static void InitADC(void)
+{
+    // Configure the 10-bit Analog to Digital converter.
+    //      AN5 = Battery Voltage
+
+    CloseADC10();
+    asm("nop");
+    asm("nop");
+    asm("nop");
+
+    // AD1CON1: ADC Control Register 1
+    AD1CON1bits.SIDL = 1;       // Discontinue operation in Idle mode.
+    AD1CON1bits.FORM = 0b000;   // 16-bit integer data output format.
+    AD1CON1bits.SSRC = 0b111;   // Auto convert.
+    AD1CON1bits.CLRASAM = 0;    // Normal operation
+    AD1CON1bits.ASAM = 0;       // Sampling begins when SAMP bit is set.
+    AD1CON1bits.DONE = 0;
+
+    // AD1CON2: ADC Control Register 2
+    AD1CON2bits.VCFG = 0;       // VR+ = AVdd, VR- = AVss
+    AD1CON2bits.OFFCAL = 0;     // Disable Offset Calibration mode.
+    AD1CON2bits.CSCNA = 0;      // Scan inputs.
+    AD1CON2bits.SMPI = 0b0000;  // Interrupts for each sample/convert.
+    AD1CON2bits.BUFM = 0;       // Buffer configured as one 16-word buffer.
+    AD1CON2bits.ALTS = 0;       // Always use MUX A input mux settings.
+
+    // AD1CON3: ADC Control Register 3
+    AD1CON3bits.ADRC = 0;       // Clock derived from Peripheral Bus Clock.
+    AD1CON3bits.SAMC = 0b11111; // Auto-sample Time = 31 TAD.
+    AD1CON3bits.ADCS = 0x0F;    // ADC Conversion Clock = 32 * TPB = TAD.
+
+    // AD1CHS: ADC Input Select Register
+    AD1CHSbits.CH0NA = 0;       // Channel 0 negative input is VR-.
+    AD1CHSbits.CH0SA = 5;       // Channel 0 positive input is AN5.
+
+    // AD1PCFG: ADC Port Configuration Register
+    AD1PCFG = 0xFFDF;           // All Analog input pins in Digital mode,
+                                // except AN5.
+
+    // AD1CSSL: ADC Input Scan Select Register
+    AD1CSSL = 0;
+
+    EnableADC10();
+    DelayMs(1);
+
+    return;
+}
+
+//==============================================================================
+
 void InitBoard()
 {
     // Initialize microcontroller peripherals.
@@ -234,6 +305,8 @@ void InitBoard()
     InitINT();
     UARTInit();
     CANInit();
+    InitADC();
+    InitI2C();
 
     // Initialize external hardware peripherals.
     KSZ8895Init();

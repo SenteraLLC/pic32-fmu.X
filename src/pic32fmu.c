@@ -11,6 +11,10 @@
 #include "init.h"
 #include "vn100.h"
 #include "oemstar.h"
+#include "status.h"
+#include "adc.h"
+#include "emc1412.h"
+#include "fmucomm.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -28,14 +32,20 @@ int main()
     for (;;)        // Main program loop.
     {
         WDTCONSET = _WDTCON_WDTCLR_MASK;        // Clear watchdog timer.
-        LATFbits.LATF3 = CoreTime64sGet() % 2;  // Blink LED at 0.5Hz
 
         // Low-level communication tasks. ---------------------------
         SPITask();
-
+        ADCTask();
+        
+        FMUCommTask();
+        
         // Acquire sensor data. -------------------------------------
         VN100Task();
         OEMStarTask();
+        EMC1412Task();
+        
+        StatusTask();
+        
         
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling

@@ -11,6 +11,8 @@
 #include "init.h"
 #include "vn100.h"
 #include "oemstar.h"
+#include "fmucomm.h"
+#include "uart.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -23,18 +25,27 @@ APP_CONFIG AppConfig;
 
 int main()
 {
-    InitBoard();    // Initialize FMU processor and peripherals.
+    InitBoard();            // Initialize FMU processor and peripherals.
     
-    for (;;)        // Main program loop.
+    asm volatile ("ei");    // Enable Global interrupts.
+    
+    UARTStartup();          // Startup UART operation.
+    
+    for (;;)                // Main program loop.
     {
         WDTCONSET = _WDTCON_WDTCLR_MASK;        // Clear watchdog timer.
         LATFbits.LATF3 = CoreTime64sGet() % 2;  // Blink LED at 0.5Hz
 
         // Low-level communication tasks. ---------------------------
         SPITask();
+        UARTTask();  // NOTE: Task must occur before any function in software cycle which used received UART data.
 
+        // This task reads UDP data for processing; therefore this task
+        // must be executed in the software cycle before any function
+        // which gets UDP data.
+        FMUCommTask();
+        
         // Acquire sensor data. -------------------------------------
-        VN100Task();
         OEMStarTask();
         
         // This task performs normal stack task including checking

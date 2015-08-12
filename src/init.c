@@ -9,6 +9,7 @@
 #include "tcpip/tcpip.h"
 #include "ksz8895.h"
 #include "init.h"
+#include "uart.h"
 
 
 //==============================================================================
@@ -230,6 +231,7 @@ void InitBoard()
     InitTMR();
     InitSPI();
     InitINT();
+    UARTInit();
 
     // Initialize external hardware peripherals.
     KSZ8895Init();

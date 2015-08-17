@@ -36,6 +36,7 @@
       <itemPath>inc/ksz8895.h</itemPath>
       <itemPath>inc/softspi.h</itemPath>
       <itemPath>inc/fmucomm.h</itemPath>
+      <itemPath>inc/can.h</itemPath>
       <itemPath>inc/util.h</itemPath>
       <itemPath>inc/uart.h</itemPath>
     </logicalFolder>
@@ -85,6 +86,7 @@
       <itemPath>src/softspi.c</itemPath>
       <itemPath>src/fmucomm.c</itemPath>
       <itemPath>src/exceptions.c</itemPath>
+      <itemPath>src/can.c</itemPath>
       <itemPath>src/util.c</itemPath>
       <itemPath>src/uart.c</itemPath>
     </logicalFolder>

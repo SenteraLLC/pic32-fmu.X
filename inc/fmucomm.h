@@ -117,16 +117,20 @@ typedef struct __attribute__ ((packed))
 
 typedef struct __attribute__ ((packed))
 {
+    uint8_t  surfaceID;
+    uint8_t  cmdType;
+    uint16_t cmdPwm;
+    uint16_t cmdPos;
+    
+} FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD;
+
+typedef struct __attribute__ ((packed))
+{
     union
     {
-        struct
-        {
-            uint8_t  ID;
-            uint16_t pos;
-
-        } ctrlSurface[ 20 ];
+        FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ctrlSurface[ 20 ];
         
-        uint8_t pl_u8[ 60 ];
+        uint8_t pl_u8[ 120 ];
     };
             
 } FMUCOMM_CTRL_SURFACE_CMD_PL;
@@ -214,19 +218,19 @@ typedef struct __attribute__ ((packed))
 
 typedef struct __attribute__ ((packed))
 {
-    uint8_t airDataID;      // Air data ID.
-    float   staticPress;    // Static pressure in kPa.
-    float   dynamicPress;   // Dynamic pressure in kPa.
-    float   temperature;    // Temperature in degrees Celsius.
-} FMUCOMM_AIR_DATA_PL;
+    uint8_t  surfaceID;     // Control surface ID.
+    uint16_t cmdTypeEcho;   // Echo of the command type used.
+    uint16_t actPwm;        // Actual surface position.
+    uint16_t inputVoltage;  // Input voltage in millivolts.
+    uint16_t inputCurrent;  // Input current in milliamps.
+    int16_t  vsense1Cor;    // The calibration corrected value of V_SENSE1.
+    int16_t  vsense2Cor;    // The calibration corrected value of V_SENSE2.
+} FMUCOMM_CTRL_SURFACE_DATA_PL_FIELD;
 
 typedef struct __attribute__ ((packed))
 {
-    uint8_t  surfaceID;     // Control surface ID.
-    int16_t  cmdPosition;   // Commanded surface position.
-    int16_t  actPosition;   // Actual surface position.
-    uint16_t inputVoltage;  // Input voltage in millivolts.
-    uint16_t inputCurrent;  // Input current in milliamps.
+    FMUCOMM_CTRL_SURFACE_DATA_PL_FIELD ctrlSurface[ 20 ];
+            
 } FMUCOMM_CTRL_SURFACE_DATA_PL;
 
 typedef struct __attribute__ ((packed))

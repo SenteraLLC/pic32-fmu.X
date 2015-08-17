@@ -50,20 +50,24 @@
 // FIFO3  - Tx - Configuration Write Request    -  1 message buffer
 // FIFO4  - Tx - Configuration Read Request     -  1 message buffer
 //
-// FIFO5  - Rx - Configuration Write Response   -  1 message buffer
-// FIFO6  - Rx - Configuration Read Response    -  1 message buffer
+// FIFO5  - Rx - S-Node Servo Status            - 20 message buffer
+// FIFO6  - Rx - S-Node VSENSE Data             - 20 message buffer
+// FIFO7  - Rx - S-Node Node Status             - 20 message buffer
+// FIFO8  - Rx - S-Node Node Version            - 20 message buffer
+// FIFO9  - Rx - Configuration Write Response   -  1 message buffer
+// FIFO10 - Rx - Configuration Read Response    -  1 message buffer
 //
-// FIFO7  - Not used.
-// FIFO8  - Not used.
+// FIFO11 - Not used.
+// FIFO12 - Not used.
 // :
 // FIFO31 - Not used.
 // 
 // Each transmit message requires 4 words (16 bytes) and each receive 
-// message (when not using ID and timestamp) requires 2 words (8 bytes).
-// Therefore, the total message allocation size is:
-//  = ( 4 words * 36 ) + ( 2 words * 2 ) = 148 words
+// message requires 4 words (16 bytes).  Therefore, the total message allocation
+//  size is:
+//  = ( 4 words * 36 ) + ( 4 words * 82 ) = 472 words
 //
-static uint32_t can_msg_buf[ 148 ];
+static uint32_t can_msg_buf[ 472 ];
 
 // *****************************************************************************
 // ************************** Function Prototypes ******************************
@@ -150,33 +154,63 @@ void CANInit( void )
     C2FIFOCON4bits.TXEN  = 1;
     C2FIFOCON4bits.TXPRI = 0b01;
     
-    // FIFO5  - Rx - Configuration Write Response (store only data bytes)
-    C2FIFOCON5bits.FSIZE = 0b0;
+    // FIFO5  - Rx - S-Node Servo Status
+    C2FIFOCON5bits.FSIZE = 0b10011;
+    C2FIFOCON5bits.TXEN  = 0;
+    C2FIFOCON5bits.DONLY = 0;
+    
+    // FIFO6  - Rx - S-Node VSENSE Data
+    C2FIFOCON5bits.FSIZE = 0b10011;
+    C2FIFOCON5bits.TXEN  = 0;
+    C2FIFOCON5bits.DONLY = 0;
+    
+    // FIFO7  - Rx - S-Node Node Status
+    C2FIFOCON5bits.FSIZE = 0b10011;
     C2FIFOCON5bits.TXEN  = 0;
     C2FIFOCON5bits.DONLY = 1;
     
-    // FIFO6  - Rx - Configuration Read Response (store only data bytes)
+    // FIFO8  - Rx - S-Node Node Version
+    C2FIFOCON5bits.FSIZE = 0b10011;
+    C2FIFOCON5bits.TXEN  = 0;
+    C2FIFOCON5bits.DONLY = 0;    
+    
+    // FIFO9  - Rx - Configuration Write Response
+    C2FIFOCON5bits.FSIZE = 0b0;
+    C2FIFOCON5bits.TXEN  = 0;
+    C2FIFOCON5bits.DONLY = 0;
+    
+    // FIFO10 - Rx - Configuration Read Response
     C2FIFOCON6bits.FSIZE = 0b0;
     C2FIFOCON6bits.TXEN  = 0;
-    C2FIFOCON6bits.DONLY = 1;
+    C2FIFOCON6bits.DONLY = 0;
     
     // Mask 0
     //  - Data Type ID          28-19   Filtered.
     //  - Transfer Type         18-17   Filtered.
     //  - Source Node ID        16-10   Not-Filtered.
     //  - Reserved              9-7     Not-Filtered.
-    //  - Destination Node ID   6-0     Filtered.
+    //  - Destination Node ID   6-0     Not-Filtered.
     //  
     C2RXM0bits.SID  = 0x7FF;
-    C2RXM0bits.EID  = 0x2007F;
+    C2RXM0bits.EID  = 0x20000;
     C2RXM0bits.MIDE = 1;        // Match only message types.
+    
+    // Mask 1
+    //  - Data Type ID          28-19   Filtered.
+    //  - Transfer Type         18-17   Filtered.
+    //  - Source Node ID        16-10   Not-Filtered.
+    //  - Reserved              9-7     Not-Filtered.
+    //  - Destination Node ID   6-0     Filtered.
+    //  
+    C2RXM1bits.SID  = 0x7FF;
+    C2RXM1bits.EID  = 0x2007F;
+    C2RXM1bits.MIDE = 1;        // Match only message types.
 
     // Filter 0
-    //  - Data Type ID          = 800  (Configuration Write Response)
-    //  - Transfer Type         = 0b00 (Service Response)
-    //  - Destination Node ID   = 0    (FMU ID)
+    //  - Data Type ID          = 20   (S-Node Servo Status)
+    //  - Transfer Type         = 0b10 (Message Broadcast)
     //
-    C2RXF0bits.SID          = 0x640;
+    C2RXF0bits.SID          = 0x029;
     C2RXF0bits.EID          = 0x00000;
     C2RXF0bits.EXID         = 1;        // Match messages only with extended ID.
     C2FLTCON0bits.FSEL0     = 5;        // Store messages in FIFO5.
@@ -184,16 +218,61 @@ void CANInit( void )
     C2FLTCON0bits.FLTEN0    = 1;        // Enable Filter 0.
     
     // Filter 1
-    //  - Data Type ID          = 801  (Configuration Read Response)
-    //  - Transfer Type         = 0b00 (Service Response)
-    //  - Destination Node ID   = 0    (FMU ID)
+    //  - Data Type ID          = 21   (S-Node VSENSE Data)
+    //  - Transfer Type         = 0b10 (Message Broadcast)
     //
-    C2RXF1bits.SID          = 0x642;
+    C2RXF1bits.SID          = 0x02B;
     C2RXF1bits.EID          = 0x00000;
     C2RXF1bits.EXID         = 1;        // Match messages only with extended ID.
     C2FLTCON0bits.FSEL1     = 6;        // Store messages in FIFO6.
     C2FLTCON0bits.MSEL1     = 0;        // Use acceptance mask 0.
     C2FLTCON0bits.FLTEN1    = 1;        // Enable Filter 1.
+    
+    // Filter 2
+    //  - Data Type ID          = 770  (S-Node Node Version)
+    //  - Transfer Type         = 0b10 (Message Broadcast)
+    //
+    C2RXF2bits.SID          = 0x605;
+    C2RXF2bits.EID          = 0x00000;
+    C2RXF2bits.EXID         = 1;        // Match messages only with extended ID.
+    C2FLTCON0bits.FSEL2     = 7;        // Store messages in FIFO7.
+    C2FLTCON0bits.MSEL2     = 0;        // Use acceptance mask 0.
+    C2FLTCON0bits.FLTEN2    = 1;        // Enable Filter 2.
+    
+    // Filter 3
+    //  - Data Type ID          = 771  (S-Node Node Version)
+    //  - Transfer Type         = 0b10 (Message Broadcast)
+    //
+    C2RXF3bits.SID          = 0x607;
+    C2RXF3bits.EID          = 0x00000;
+    C2RXF3bits.EXID         = 1;        // Match messages only with extended ID.
+    C2FLTCON0bits.FSEL3     = 8;        // Store messages in FIFO8.
+    C2FLTCON0bits.MSEL3     = 0;        // Use acceptance mask 0.
+    C2FLTCON0bits.FLTEN3    = 1;        // Enable Filter 3.
+    
+    // Filter 4
+    //  - Data Type ID          = 800  (Configuration Write Response)
+    //  - Transfer Type         = 0b00 (Service Response)
+    //  - Destination Node ID   = 0    (FMU ID)
+    //
+    C2RXF4bits.SID          = 0x640;
+    C2RXF4bits.EID          = 0x00000;
+    C2RXF4bits.EXID         = 1;        // Match messages only with extended ID.
+    C2FLTCON1bits.FSEL4     = 9;        // Store messages in FIFO9.
+    C2FLTCON1bits.MSEL4     = 1;        // Use acceptance mask 1.
+    C2FLTCON1bits.FLTEN4    = 1;        // Enable Filter 4.
+    
+    // Filter 5
+    //  - Data Type ID          = 801  (Configuration Read Response)
+    //  - Transfer Type         = 0b00 (Service Response)
+    //  - Destination Node ID   = 0    (FMU ID)
+    //
+    C2RXF5bits.SID          = 0x642;
+    C2RXF5bits.EID          = 0x00000;
+    C2RXF5bits.EXID         = 1;        // Match messages only with extended ID.
+    C2FLTCON1bits.FSEL5     = 10;       // Store messages in FIFO10.
+    C2FLTCON1bits.MSEL5     = 1;        // Use acceptance mask 1.
+    C2FLTCON1bits.FLTEN5    = 1;        // Enable Filter 5.
     
     // Request hardware normal mode and wait for entry.
     C2CONbits.REQOP = 0;
@@ -253,7 +332,7 @@ void CANTxSet ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, const uint32_t p
     }
 }
 
-bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint32_t payload[ 2 ] )
+bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint8_t* src_id_p, uint32_t payload[ 2 ] )
 {
     // Structure definition of HW elements corresponding the a message type.
     typedef struct
@@ -266,8 +345,12 @@ bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint32_t payload[ 2 ] )
     
     static const RX_HW_MAP_S rx_hw_map[ CAN_RX_MSG_NUM_OF ] = 
     {
-        { &C2FIFOUA5, &C2FIFOINT5, &C2FIFOCON5SET },  // CAN_RX_MSG_CFG_WRITE_RESP
-        { &C2FIFOUA6, &C2FIFOINT6, &C2FIFOCON6SET },  // CAN_RX_MSG_CFG_READ_RESP
+        { &C2FIFOUA5,  &C2FIFOINT5,  &C2FIFOCON5SET  },  // CAN_RX_MSG_SNODE_SERVO_STATUS
+        { &C2FIFOUA6,  &C2FIFOINT6,  &C2FIFOCON6SET  },  // CAN_RX_MSG_SNODE_VSENSE_DATA
+        { &C2FIFOUA7,  &C2FIFOINT7,  &C2FIFOCON7SET  },  // CAN_RX_MSG_SNODE_STATUS
+        { &C2FIFOUA8,  &C2FIFOINT8,  &C2FIFOCON8SET  },  // CAN_RX_MSG_SNODE_VERSION
+        { &C2FIFOUA9,  &C2FIFOINT9,  &C2FIFOCON9SET  },  // CAN_RX_MSG_CFG_WRITE_RESP
+        { &C2FIFOUA10, &C2FIFOINT10, &C2FIFOCON10SET },  // CAN_RX_MSG_CFG_READ_RESP
     };
     
     uint8_t     payload_idx;
@@ -283,13 +366,23 @@ bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint32_t payload[ 2 ] )
         // Get the address of the message buffer to read from the C2FIFOUA
         // register. Convert this physical address to virtual address.
         msg_p = PA_TO_KVA1( *rx_hw_map[ rx_msg_type ].fifoua_p );
+        
+        // Source ID pointer is valid ?
+        if( src_id_p != NULL )
+        {
+            // Copy the source ID into the supplied variable.  The source ID is
+            // stored in bits 20-26 of hardware buffer word 1.
+            *src_id_p = (uint8_t) ( ( msg_p[ 1 ] >> 20 ) & 0x7F );
+        }
 
         // Copy payload into supplied buffer.
         for ( payload_idx = 0;
               payload_idx < 2;
               payload_idx++ )
         {
-            payload[ payload_idx ] = msg_p[ payload_idx ];
+            // Note: First 2 words of hardware buffer are used for CAN ID,
+            // DLC, and control bits.
+            payload[ payload_idx ] = msg_p[ payload_idx + 2 ];
         }
         
         // Increment the FIFO index to identify message as received.

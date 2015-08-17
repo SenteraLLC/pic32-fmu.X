@@ -41,6 +41,9 @@
       <itemPath>inc/emc1412.h</itemPath>
       <itemPath>inc/i2c.h</itemPath>
       <itemPath>inc/util.h</itemPath>
+      <itemPath>inc/can.h</itemPath>
+      <itemPath>inc/uart.h</itemPath>
+      <itemPath>inc/snode.h</itemPath>
     </logicalFolder>
     <logicalFolder name="f1" displayName="HTTP Files" projectFiles="true">
       <itemPath>http/favicon.ico</itemPath>
@@ -93,6 +96,9 @@
       <itemPath>src/emc1412.c</itemPath>
       <itemPath>src/i2c.c</itemPath>
       <itemPath>src/util.c</itemPath>
+      <itemPath>src/can.c</itemPath>
+      <itemPath>src/uart.c</itemPath>
+      <itemPath>src/snode.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

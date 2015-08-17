@@ -449,8 +449,8 @@ void FMUCommRead( void )
                         // calculation is necessary because packet fields are in non-
                         // contiguous memory locations.
                         //
-                        calcCRC = utilCRC16( &pkt_wrap.type,                         sizeof( pkt_wrap.type   ), 0       );
-                        calcCRC = utilCRC16( &pkt_wrap.length,                       sizeof( pkt_wrap.length ), calcCRC );
+                        calcCRC = utilCRC16( &pkt_wrap.type,                           sizeof( pkt_wrap.type   ), 0       );
+                        calcCRC = utilCRC16( &pkt_wrap.length,                         sizeof( pkt_wrap.length ), calcCRC );
                         calcCRC = utilCRC16( &FMUCommRxPkt[ pkt_wrap.type ].pl_p[ 0 ], pkt_wrap.length,           calcCRC );
                         
                         // Calculated CRC matches that received ?

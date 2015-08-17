@@ -39,6 +39,10 @@ typedef enum
 /// List of received messages.
 typedef enum
 {
+    CAN_RX_MSG_SNODE_SERVO_STATUS,
+    CAN_RX_MSG_SNODE_VSENSE_DATA,
+    CAN_RX_MSG_SNODE_STATUS,
+    CAN_RX_MSG_SNODE_VERSION,
     CAN_RX_MSG_CFG_WRITE_RESP,
     CAN_RX_MSG_CFG_READ_RESP,
     
@@ -128,6 +132,65 @@ typedef union
 //
 // RECEIVE MESSAGES -----------------------------------------------------------
 //
+        
+/// Payload content of Servo-node Servo Status Message.
+typedef union
+{
+    uint32_t data_u32[ 2 ];
+    
+    struct __attribute__ ((packed))
+    {
+        uint16_t cmd_type_echo;
+        uint16_t pwm_act;
+        uint16_t servo_voltage;
+        uint16_t servo_current;
+    };
+    
+} CAN_RX_MSG_SNODE_SERVO_STATUS_U;
+
+/// Payload content of Servo-node VSENSE Data message.
+typedef union
+{
+    uint32_t data_u32[ 2 ];
+    
+    struct __attribute__ ((packed))
+    {
+        uint16_t vsense1_raw;
+        int16_t  vsense1_cor;
+        uint16_t vsense2_raw;
+        int16_t  vsense2_cor;
+    };
+    
+} CAN_RX_MSG_SNODE_VSENSE_DATA_U;
+
+/// Payload content of Node Servo-node Status message.
+typedef union
+{
+    uint32_t data_u32[ 2 ];
+    
+    struct __attribute__ ((packed))
+    {
+        uint16_t reset_condition;
+        uint16_t reset_detail;
+    };
+    
+} CAN_RX_MSG_SNODE_STATUS_U;
+
+/// Payload content of Node Servo-node Version message.
+typedef union
+{
+    uint32_t data_u32[ 2 ];
+    
+    struct __attribute__ ((packed))
+    {
+        uint8_t  node_type;
+        uint8_t  rev_ver;
+        uint8_t  min_ver;
+        uint8_t  maj_ver;
+        uint32_t serial_num;
+    };
+    
+} CAN_RX_MSG_SNODE_VERSION_U;
 
 /// Payload content of Configuration Write Response message.
 typedef union
@@ -147,11 +210,11 @@ typedef union
 {
     uint32_t data_u32[ 2 ];
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint16_t cfg_sel;
         
-        union __attribute__ ((packed))
+        union
         {
             uint8_t cfg_val_u8;
             int32_t cfg_val_i32;
@@ -196,12 +259,19 @@ void CANTxSet( CAN_TX_MSG_TYPE_E tx_msg_type,
 ///
 /// @param  rx_msg_type
 ///             Type of message received.
+/// @param  src_id_p
+///             Variable for storing the received message's source ID.
 /// @param  payload
 ///             Buffer for storing the received message's payload.
+///
+/// @note   Parameter 'src_id_p' can be set to NULL when the Source ID is 
+///         not applicable or not needed.
 ///
 /// @return true  - returned data is value.  
 ///         false - returned data is invalid.
 ////////////////////////////////////////////////////////////////////////////////
-bool CANRxGet( CAN_RX_MSG_TYPE_E rx_msg_type, uint32_t payload[ 2 ] );
+bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, 
+                uint8_t* src_id_p,
+                uint32_t payload[ 2 ] );
 
 #endif	// CAN_H_

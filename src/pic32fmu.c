@@ -16,6 +16,7 @@
 #include "adc.h"
 #include "emc1412.h"
 #include "fmucomm.h"
+#include "snode.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -53,7 +54,7 @@ int main()
         EMC1412Task();
         
         StatusTask();
-        
+        SNodeTask();
         
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling

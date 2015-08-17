@@ -10,6 +10,7 @@
 #include "ksz8895.h"
 #include "init.h"
 #include "can.h"
+#include "uart.h"
 
 
 //==============================================================================
@@ -232,6 +233,7 @@ void InitBoard()
     InitSPI();
     InitINT();
     CANInit();
+    UARTInit();
 
     // Initialize external hardware peripherals.
     KSZ8895Init();

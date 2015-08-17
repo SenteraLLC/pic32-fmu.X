@@ -37,6 +37,8 @@
       <itemPath>inc/softspi.h</itemPath>
       <itemPath>inc/fmucomm.h</itemPath>
       <itemPath>inc/can.h</itemPath>
+      <itemPath>inc/util.h</itemPath>
+      <itemPath>inc/uart.h</itemPath>
     </logicalFolder>
     <logicalFolder name="f1" displayName="HTTP Files" projectFiles="true">
       <itemPath>http/favicon.ico</itemPath>
@@ -85,6 +87,8 @@
       <itemPath>src/fmucomm.c</itemPath>
       <itemPath>src/exceptions.c</itemPath>
       <itemPath>src/can.c</itemPath>
+      <itemPath>src/util.c</itemPath>
+      <itemPath>src/uart.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

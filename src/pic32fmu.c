@@ -13,6 +13,9 @@
 #include "oemstar.h"
 #include "fmucomm.h"
 #include "uart.h"
+#include "status.h"
+#include "adc.h"
+#include "emc1412.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -34,9 +37,9 @@ int main()
     for (;;)                // Main program loop.
     {
         WDTCONSET = _WDTCON_WDTCLR_MASK;        // Clear watchdog timer.
-        LATFbits.LATF3 = CoreTime64sGet() % 2;  // Blink LED at 0.5Hz
 
         // Low-level communication tasks. ---------------------------
+        ADCTask();
         SPITask();
         UARTTask();  // NOTE: Task must occur before any function in software cycle which used received UART data.
 
@@ -47,6 +50,9 @@ int main()
         
         // Acquire sensor data. -------------------------------------
         OEMStarTask();
+        EMC1412Task();
+        
+        StatusTask();
         
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling

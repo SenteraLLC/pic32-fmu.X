@@ -67,7 +67,25 @@ extern uint8_t curHTTPID;
 void HTTPPrint(uint32_t callbackID);
 void HTTPPrint_builddate(void);
 void HTTPPrint_uptime(void);
-void HTTPPrint_feedback(void);
+void HTTPPrint_calID(void);
+void HTTPPrint_calx0pwm(void);
+void HTTPPrint_calx0vs1(void);
+void HTTPPrint_calx0vs2(void);
+void HTTPPrint_calx1pwm(void);
+void HTTPPrint_calx1vs1(void);
+void HTTPPrint_calx1vs2(void);
+void HTTPPrint_calx2pwm(void);
+void HTTPPrint_calx2vs1(void);
+void HTTPPrint_calx2vs2(void);
+void HTTPPrint_calx3pwm(void);
+void HTTPPrint_calx3vs1(void);
+void HTTPPrint_calx3vs2(void);
+void HTTPPrint_calx4pwm(void);
+void HTTPPrint_calx4vs1(void);
+void HTTPPrint_calx4vs2(void);
+void HTTPPrint_calx5pwm(void);
+void HTTPPrint_calx5vs1(void);
+void HTTPPrint_calx5vs2(void);
 
 /*****************************************************************************
  * FUNCTION: HTTPPrint
@@ -87,7 +105,61 @@ void HTTPPrint(uint32_t callbackID)
 			HTTPPrint_uptime();
 			break;
         case 0x00000002:
-			HTTPPrint_feedback();
+			HTTPPrint_calID();
+			break;
+        case 0x00000003:
+			HTTPPrint_calx0pwm();
+			break;
+        case 0x00000004:
+			HTTPPrint_calx0vs1();
+			break;
+        case 0x00000005:
+			HTTPPrint_calx0vs2();
+			break;
+        case 0x00000006:
+			HTTPPrint_calx1pwm();
+			break;
+        case 0x00000007:
+			HTTPPrint_calx1vs1();
+			break;
+        case 0x00000008:
+			HTTPPrint_calx1vs2();
+			break;
+        case 0x00000009:
+			HTTPPrint_calx2pwm();
+			break;
+        case 0x0000000a:
+			HTTPPrint_calx2vs1();
+			break;
+        case 0x0000000b:
+			HTTPPrint_calx2vs2();
+			break;
+        case 0x0000000c:
+			HTTPPrint_calx3pwm();
+			break;
+        case 0x0000000d:
+			HTTPPrint_calx3vs1();
+			break;
+        case 0x0000000e:
+			HTTPPrint_calx3vs2();
+			break;
+        case 0x0000000f:
+			HTTPPrint_calx4pwm();
+			break;
+        case 0x00000010:
+			HTTPPrint_calx4vs1();
+			break;
+        case 0x00000011:
+			HTTPPrint_calx4vs2();
+			break;
+        case 0x00000012:
+			HTTPPrint_calx5pwm();
+			break;
+        case 0x00000013:
+			HTTPPrint_calx5vs1();
+			break;
+        case 0x00000014:
+			HTTPPrint_calx5vs2();
 			break;
        default:
            // Output notification for undefined values

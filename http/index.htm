@@ -10,15 +10,65 @@
         <script src="fmu.js" type="text/javascript"></script>
         <script type="text/javascript">
             <!--
-            function sendCommandAction() {
-                newAJAXCommand('buttons.cgi?button=sendCommand&cmdString=' + document.getElementById('cmdString').value.toString() + '&timestamp=' + (new Date()).getTime());
+            function readCalAction() {
+                newAJAXCommand('buttons.cgi?button=readCal' + 
+                        '&id=' + document.getElementById('calID').value.toString() + 
+                        '&timestamp=' + (new Date()).getTime());
+                document.getElementById('calID').value = getXMLValue('status.xml', 'calID');
+                document.getElementById('calx0pwm').value = getXMLValue('status.xml', 'calx0pwm');
+                document.getElementById('calx0vs1').value = getXMLValue('status.xml', 'calx0vs1');
+                document.getElementById('calx0vs2').value = getXMLValue('status.xml', 'calx0vs2');
+                document.getElementById('calx1pwm').value = getXMLValue('status.xml', 'calx1pwm');
+                document.getElementById('calx1vs1').value = getXMLValue('status.xml', 'calx1vs1');
+                document.getElementById('calx1vs2').value = getXMLValue('status.xml', 'calx1vs2');
+                document.getElementById('calx2pwm').value = getXMLValue('status.xml', 'calx2pwm');
+                document.getElementById('calx2vs1').value = getXMLValue('status.xml', 'calx2vs1');
+                document.getElementById('calx2vs2').value = getXMLValue('status.xml', 'calx2vs2');
+                document.getElementById('calx3pwm').value = getXMLValue('status.xml', 'calx3pwm');
+                document.getElementById('calx3vs1').value = getXMLValue('status.xml', 'calx3vs1');
+                document.getElementById('calx3vs2').value = getXMLValue('status.xml', 'calx3vs2');
+                document.getElementById('calx4pwm').value = getXMLValue('status.xml', 'calx4pwm');
+                document.getElementById('calx4vs1').value = getXMLValue('status.xml', 'calx4vs1');
+                document.getElementById('calx4vs2').value = getXMLValue('status.xml', 'calx4vs2');
+                document.getElementById('calx5pwm').value = getXMLValue('status.xml', 'calx5pwm');
+                document.getElementById('calx5vs1').value = getXMLValue('status.xml', 'calx5vs1');
+                document.getElementById('calx5vs2').value = getXMLValue('status.xml', 'calx5vs2');
+            }
+            function writeCalAction() {
+                newAJAXCommand('buttons.cgi?button=writeCal' + 
+                        '&id=' + document.getElementById('calID').value.toString() + 
+                        '&x0pwm=' + document.getElementById('calx0pwm').value.toString() + 
+                        '&x0vs1=' + document.getElementById('calx0vs1').value.toString() + 
+                        '&x0vs2=' + document.getElementById('calx0vs2').value.toString() + 
+                        '&x1pwm=' + document.getElementById('calx1pwm').value.toString() + 
+                        '&x1vs1=' + document.getElementById('calx1vs1').value.toString() + 
+                        '&x1vs2=' + document.getElementById('calx1vs2').value.toString() + 
+                        '&x2pwm=' + document.getElementById('calx2pwm').value.toString() + 
+                        '&x2vs1=' + document.getElementById('calx2vs1').value.toString() + 
+                        '&x2vs2=' + document.getElementById('calx2vs2').value.toString() + 
+                        '&x3pwm=' + document.getElementById('calx3pwm').value.toString() + 
+                        '&x3vs1=' + document.getElementById('calx3vs1').value.toString() + 
+                        '&x3vs2=' + document.getElementById('calx3vs2').value.toString() + 
+                        '&x4pwm=' + document.getElementById('calx4pwm').value.toString() + 
+                        '&x4vs1=' + document.getElementById('calx4vs1').value.toString() + 
+                        '&x4vs2=' + document.getElementById('calx4vs2').value.toString() + 
+                        '&x5pwm=' + document.getElementById('calx5pwm').value.toString() + 
+                        '&x5vs1=' + document.getElementById('calx5vs1').value.toString() + 
+                        '&x5vs2=' + document.getElementById('calx5vs2').value.toString() + 
+                        '&timestamp=' + (new Date()).getTime());
+            }
+            function sendTestValueAction() {
+                newAJAXCommand('buttons.cgi?button=sendTestValue' +
+                        '&id=' + document.getElementById('testID').value.toString() + 
+                        '&value=' + document.getElementById('testValue').value.toString() + 
+                        '&unit=' + document.getElementById('testUnit').value.toString() + 
+                        '&timestamp=' + (new Date()).getTime());
             }
             function updateStatus(xmlData) {
-                if(!xmlData) {
+                if (!xmlData) {
                     return;
                 }
                 document.getElementById('uptime').innerHTML = getXMLValue(xmlData, 'uptime');
-                document.getElementById('feedback').innerHTML = getXMLValue(xmlData, 'feedback');
             }
             startAJAX(200);
             setTimeout("newAJAXCommand('status.xml', updateStatus, true)", 500);
@@ -63,22 +113,175 @@
             <p/>
             <table>
                 <tr>
-                    <td>
-                        <b>command</b>
-                    </td>
-                    <td style="text-align: left">
-                        <input type="text" id="cmdString" value="0.00" maxlength="10" size="15" style="text-align: center" />
-                    </td>
-                    <td>
-                        <button type="button" onclick="sendCommandAction()">send</button>
+                    <td colspan="4">
+                        <b>Calibration</b>
                     </td>
                 </tr>
                 <tr>
-                    <td>
-                        <b>feedback</b>
+                    <td colspan="4">
+                        &nbsp;
                     </td>
-                    <td colspan="2">
-                        <span id="feedback" style="font-weight:normal">?</span>
+                </tr>
+                <tr>
+                    <td style="text-align: left">
+                        <b>ID</b>
+                    </td>
+                    <td>
+                        <input type="text" id="calID" value="0" maxlength="3" size="10" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center">
+                        <button type="button" style="width: 50px" onclick="readCalAction()">read</button>
+                    </td>
+                    <td style="text-align: center">
+                        <button type="button" style="width: 50px" onclick="writeCalAction()">write</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4">
+                        <hr/>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 10%">
+                        &nbsp;
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <b>PWM</b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <b>V<sub>sense1</sub></b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <b>V<sub>sense2</sub></b>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: left; width: 10%">
+                        <b>x<sup>0</sup></b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx0pwm" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx0vs1" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx0vs2" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: left; width: 10%">
+                        <b>x<sup>1</sup></b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx1pwm" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx1vs1" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx1vs2" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: left; width: 10%">
+                        <b>x<sup>2</sup></b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx2pwm" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx2vs1" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx2vs2" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: left; width: 10%">
+                        <b>x<sup>3</sup></b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx3pwm" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx3vs1" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx3vs2" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: left; width: 10%">
+                        <b>x<sup>4</sup></b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx4pwm" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx4vs1" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx4vs2" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: left; width: 10%">
+                        <b>x<sup>5</sup></b>
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx5pwm" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx5vs1" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center; width: 30%">
+                        <input type="text" id="calx5vs2" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                </tr>
+            </table>
+            <p/>
+            <table>
+                <tr>
+                    <td colspan="4">
+                        <b>Test</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center">
+                        <b>ID</b>
+                    </td>
+                    <td style="text-align: center">
+                        <b>Value</b>
+                    </td>
+                    <td style="text-align: center">
+                        <b>Unit</b>
+                    </td>
+                    <td>
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center">
+                        <input type="text" id="testID" value="0" maxlength="3" size="5" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center">
+                        <input type="text" id="testValue" value="0" maxlength="11" size="11" style="text-align: center" />
+                    </td>
+                    <td style="text-align: center">
+                        <select name="testUnit" id="testUnit">
+                            <option value="0">PWM</option>
+                            <option value="1">rad</option>
+                            <option value="2">deg</option>
+                        </select>
+                    </td>
+                    <td style="text-align: center">
+                        <button type="button" style="width: 50px" onclick="sendTestValueAction()">send</button>
                     </td>
                 </tr>
             </table>

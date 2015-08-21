@@ -9,9 +9,8 @@
 #include "tcpip/tcpip.h"
 #include "ksz8895.h"
 #include "init.h"
-#include "uart.h"
 #include "can.h"
-
+#include "uart.h"
 
 //==============================================================================
 

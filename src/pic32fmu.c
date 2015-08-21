@@ -40,6 +40,7 @@ int main()
         WDTCONSET = _WDTCON_WDTCLR_MASK;        // Clear watchdog timer.
 
         // Low-level communication tasks. ---------------------------
+        ADCTask();
         SPITask();
         UARTTask();  // NOTE: Task must occur before any function in software cycle which used received UART data.
         

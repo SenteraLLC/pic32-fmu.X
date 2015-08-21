@@ -40,15 +40,15 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "system_config.h"
 #include "tcpip/tcpip.h"
 #include "coretime.h"
+#include "can.h"
+#include "snode.h"
 
 extern APP_CONFIG AppConfig;
-
 
 /****************************************************************************
   Section:
     Dynamic Variable Callback Functions
   ***************************************************************************/
-
 void HTTPPrint_builddate()
 {
     switch (curHTTP.callbackPos)
@@ -76,7 +76,6 @@ void HTTPPrint_builddate()
 }
 
 //==============================================================================
-
 void HTTPPrint_uptime()
 {
     char msg[75];
@@ -124,18 +123,46 @@ void HTTPPrint_uptime()
 }
 
 //==============================================================================
-
-void HTTPPrint_feedback()
+void HTTPPrint_calVal(void)
 {
-    char msg[16];
-
+    // NOTE: calibration read values are packed as comma
+    // delimited string.
+    //
+    //                   Index      String size (max + comma)
+    // - PWM_0           0          11 + 1
+    // - PWM_1           1          11 + 1
+    // - PWM_2           2          11 + 1
+    // - PWM_3           3          11 + 1
+    // - PWM_4           4          11 + 1
+    // - PWM_5           5          11 + 1
+    // -
+    // - VSENSE1_0       6          11 + 1
+    // - VSENSE1_1       7          11 + 1
+    // - VSENSE1_2       9          11 + 1
+    // - VSENSE1_3       10         11 + 1
+    // - VSENSE1_4       11         11 + 1
+    // - VSENSE1_5       12         11 + 1
+    // -                           
+    // - VSENSE2_0       13         11 + 1
+    // - VSENSE2_1       14         11 + 1
+    // - VSENSE2_2       15         11 + 1
+    // - VSENSE2_3       16         11 + 1
+    // - VSENSE2_4       17         11 + 1
+    // - VSENSE2_5       18         11 + 1
+    //
+    // Total string size required is: 15 * 12 = 180.
+    //
+    static char msg[200];
+    
     if (TCPIsPutReady(sktHTTP) < sizeof(msg))
     {
         curHTTP.callbackPos = 1;
         return;
     }
-
-    sprintf(msg, "%u", 0);         // TODO: Provide actual feedback value.
+    
+    // Populate the string with received calibration data.
+    SNodeCalReadStrGet(msg);
+    
     TCPPutROMString(sktHTTP, msg);
     curHTTP.callbackPos = 0;
 
@@ -143,10 +170,10 @@ void HTTPPrint_feedback()
 }
 
 //==============================================================================
-
-void HTTPPrint_calID(void)
+void HTTPPrint_calReadResp(void)
 {
-    char msg[16];
+    SNODE_CAL_READ_STATUS cal_read_status;
+    char msg[40];
 
     if (TCPIsPutReady(sktHTTP) < sizeof(msg))
     {
@@ -154,7 +181,18 @@ void HTTPPrint_calID(void)
         return;
     }
 
-    sprintf(msg, "%u", 1);         // TODO: Provide actual feedback value.
+    // Get the status of the calibration write operation.
+    cal_read_status = SNodeCalReadStatusGet();
+    
+    if( cal_read_status == SNODE_CAL_READ_SUCCESS )
+    {
+        sprintf(msg, "Calibration Read Success!");
+    }
+    else
+    {
+        sprintf(msg, "Calibration Read FAILURE!"); 
+    }
+    
     TCPPutROMString(sktHTTP, msg);
     curHTTP.callbackPos = 0;
 
@@ -162,10 +200,10 @@ void HTTPPrint_calID(void)
 }
 
 //==============================================================================
-
-void HTTPPrint_calx0pwm(void)
+void HTTPPrint_calWriteResp(void)
 {
-    char msg[16];
+    SNODE_CAL_WRITE_STATUS cal_write_status;
+    char msg[40];
 
     if (TCPIsPutReady(sktHTTP) < sizeof(msg))
     {
@@ -173,7 +211,18 @@ void HTTPPrint_calx0pwm(void)
         return;
     }
 
-    sprintf(msg, "%u", 2);         // TODO: Provide actual feedback value.
+    // Get the status of the calibration write operation.
+    cal_write_status = SNodeCalWriteStatusGet();
+    
+    if( cal_write_status == SNODE_CAL_WRITE_SUCCESS )
+    {
+        sprintf(msg, "Calibration Write Success!");
+    }
+    else
+    {
+        sprintf(msg, "Calibration Write FAILURE!"); 
+    }
+    
     TCPPutROMString(sktHTTP, msg);
     curHTTP.callbackPos = 0;
 
@@ -181,10 +230,10 @@ void HTTPPrint_calx0pwm(void)
 }
 
 //==============================================================================
-
-void HTTPPrint_calx0vs1(void)
+void HTTPPrint_idWriteResp(void)
 {
-    char msg[16];
+    SNODE_ID_WRITE_STATUS id_write_status;
+    char msg[40];
 
     if (TCPIsPutReady(sktHTTP) < sizeof(msg))
     {
@@ -192,7 +241,19 @@ void HTTPPrint_calx0vs1(void)
         return;
     }
 
-    sprintf(msg, "%u", 3);         // TODO: Provide actual feedback value.
+    // Get the status of the ID write operation.
+    id_write_status = SNodeIDWriteStatusGet();
+    
+    if( id_write_status == SNODE_ID_WRITE_SUCCESS )
+    {
+        sprintf(msg, "ID Write Success!"); 
+        
+    }
+    else
+    {
+        sprintf(msg, "ID Write FAILURE!"); 
+    }
+    
     TCPPutROMString(sktHTTP, msg);
     curHTTP.callbackPos = 0;
 
@@ -200,309 +261,48 @@ void HTTPPrint_calx0vs1(void)
 }
 
 //==============================================================================
-
-void HTTPPrint_calx0vs2(void)
+void HTTPPrint_nwVal(void)
 {
-    char msg[16];
-
+    // NOTE: Servo-node read values are packed as comma
+    // delimited string.
+    //
+    //                                      Index       String size (max + comma)
+    // - Number of CAN Servo-Nodes           0          2 + 1
+    // -
+    // - ID                                  1          3 + 1
+    // - actPwm                              2          5 + 1
+    // - servoVoltage                        3          5 + 1
+    // - vsense1Cor                          4          5 + 1
+    // - vsense2Cor                          5          5 + 1
+    // -                           
+    // - ID                                  6          3 + 1
+    // - actPwm                              7          5 + 1
+    // - servoVoltage                        8          5 + 1
+    // - vsense1Cor                          9          5 + 1
+    // - vsense2Cor                         10          5 + 1
+    // -
+    // - :
+    // - : etc
+    // - :
+    //
+    // Total string size required is: 2 + (23 * #nodes) + 50.  With possible number 
+    // of nodes equal to '10', the maximum string size is 282.
+    static char msg[300];
+    
     if (TCPIsPutReady(sktHTTP) < sizeof(msg))
     {
         curHTTP.callbackPos = 1;
         return;
     }
-
-    sprintf(msg, "%u", 4);         // TODO: Provide actual feedback value.
+    
+    // Populate the string with received Servo-Node data.
+    SNodeRxDataStrGet(msg);
+    
     TCPPutROMString(sktHTTP, msg);
     curHTTP.callbackPos = 0;
 
     return;
 }
-
-//==============================================================================
-
-void HTTPPrint_calx1pwm(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 5);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx1vs1(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 6);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx1vs2(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 7);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx2pwm(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 8);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx2vs1(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 9);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx2vs2(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 10);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx3pwm(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 11);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx3vs1(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 12);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx3vs2(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 13);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx4pwm(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 14);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx4vs1(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 15);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx4vs2(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 16);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx5pwm(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 17);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx5vs1(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 18);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
-//==============================================================================
-
-void HTTPPrint_calx5vs2(void)
-{
-    char msg[16];
-
-    if (TCPIsPutReady(sktHTTP) < sizeof(msg))
-    {
-        curHTTP.callbackPos = 1;
-        return;
-    }
-
-    sprintf(msg, "%u", 19);         // TODO: Provide actual feedback value.
-    TCPPutROMString(sktHTTP, msg);
-    curHTTP.callbackPos = 0;
-
-    return;
-}
-
 
 /****************************************************************************
   Section:
@@ -534,104 +334,108 @@ HTTP_IO_RESULT HTTPExecuteGet(void)
         // Determine which button was pressed.
         ptr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *) "button");
 
-        if (strcmp((const char*)ptr, "readCal") == 0)
+        if (strcmp((const char*)ptr, "idWrite") == 0)
         {
             uint8_t *cmdPtr;
-            uint32_t id;
+            uint8_t curID;
+            uint8_t newID;
             
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"id");
-            id = atoi((char*)cmdPtr);
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"curID");
+            curID = atoi((char*)cmdPtr);
             
-            Nop();      // TODO: Process read calibration data.
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"newID");
+            newID = atoi((char*)cmdPtr);
+            
+            SNodeIDWriteSet( curID, newID );
         }
-        else if (strcmp((const char*)ptr, "writeCal") == 0)
+        else if (strcmp((const char*)ptr, "calWrite") == 0)
         {
             uint8_t *cmdPtr;
-            uint32_t id;        // CAN Node ID
-            uint32_t x0pwm;     // X0 PWM Coefficient
-            uint32_t x0vs1;     // X0 Vsense1 Coefficient
-            uint32_t x0vs2;     // X0 Vsense2 Coefficient
-            uint32_t x1pwm;     // X1 PWM Coefficient
-            uint32_t x1vs1;     // X1 Vsense1 Coefficient
-            uint32_t x1vs2;     // X1 Vsense2 Coefficient
-            uint32_t x2pwm;     // X2 PWM Coefficient
-            uint32_t x2vs1;     // X2 Vsense1 Coefficient
-            uint32_t x2vs2;     // X2 Vsense2 Coefficient
-            uint32_t x3pwm;     // X3 PWM Coefficient
-            uint32_t x3vs1;     // X3 Vsense1 Coefficient
-            uint32_t x3vs2;     // X3 Vsense2 Coefficient
-            uint32_t x4pwm;     // X4 PWM Coefficient
-            uint32_t x4vs1;     // X4 Vsense1 Coefficient
-            uint32_t x4vs2;     // X4 Vsense2 Coefficient
-            uint32_t x5pwm;     // X5 PWM Coefficient
-            uint32_t x5vs1;     // X5 Vsense1 Coefficient
-            uint32_t x5vs2;     // X5 Vsense2 Coefficient
+            uint32_t id;                // CAN Node ID
+            SNODE_CFG_VAL cfg_val;      // Configuration values.
             
+            // NODE IDENTIFIER /////////////////////////////////////////////////
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"id");
             id = atoi((char*)cmdPtr);
             
+            // PWM COEFFIENTS //////////////////////////////////////////////////
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x0pwm");
-            x0pwm = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x0vs1");
-            x0vs1 = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x0vs2");
-            x0vs2 = atoi((char*)cmdPtr);
+            cfg_val.pwm_coeff[0] = atoi((char*)cmdPtr);
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x1pwm");
-            x1pwm = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x1vs1");
-            x1vs1 = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x1vs2");
-            x1vs2 = atoi((char*)cmdPtr);
+            cfg_val.pwm_coeff[1] = atoi((char*)cmdPtr);
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x2pwm");
-            x2pwm = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x2vs1");
-            x2vs1 = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x2vs2");
-            x2vs2 = atoi((char*)cmdPtr);
+            cfg_val.pwm_coeff[2] = atoi((char*)cmdPtr);
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x3pwm");
-            x3pwm = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x3vs1");
-            x3vs1 = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x3vs2");
-            x3vs2 = atoi((char*)cmdPtr);
+            cfg_val.pwm_coeff[3] = atoi((char*)cmdPtr);
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x4pwm");
-            x4pwm = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x4vs1");
-            x4vs1 = atoi((char*)cmdPtr);
-            
-            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x4vs2");
-            x4vs2 = atoi((char*)cmdPtr);
+            cfg_val.pwm_coeff[4] = atoi((char*)cmdPtr);
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x5pwm");
-            x5pwm = atoi((char*)cmdPtr);
+            cfg_val.pwm_coeff[5] = atoi((char*)cmdPtr);
+            
+            // VSENSE1 COEFFICIENTS ////////////////////////////////////////////
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x0vs1");
+            cfg_val.vsense1_coeff[0] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x1vs1");
+            cfg_val.vsense1_coeff[1] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x2vs1");
+            cfg_val.vsense1_coeff[2] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x3vs1");
+            cfg_val.vsense1_coeff[3] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x4vs1");
+            cfg_val.vsense1_coeff[4] = atoi((char*)cmdPtr);
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x5vs1");
-            x5vs1 = atoi((char*)cmdPtr);
+            cfg_val.vsense1_coeff[5] = atoi((char*)cmdPtr);
+            
+            // VSENSE2 COEFFICIENTS ////////////////////////////////////////////
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x0vs2");
+            cfg_val.vsense2_coeff[0] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x1vs2");
+            cfg_val.vsense2_coeff[1] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x2vs2");
+            cfg_val.vsense2_coeff[2] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x3vs2");
+            cfg_val.vsense2_coeff[3] = atoi((char*)cmdPtr);
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x4vs2");
+            cfg_val.vsense2_coeff[4] = atoi((char*)cmdPtr);
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"x5vs2");
-            x5vs2 = atoi((char*)cmdPtr);
+            cfg_val.vsense2_coeff[5] = atoi((char*)cmdPtr);
             
-            Nop();      // TODO: Process write calibration data.
+            // Set the coefficients to be programmed.
+            SNodeCalWriteSet( id, &cfg_val );
+        }
+        else if (strcmp((const char*)ptr, "calRead") == 0)
+        {
+            uint8_t *cmdPtr;
+            uint8_t id;
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"id");
+            id = atoi((char*)cmdPtr);
+            
+            SNodeCalReadSet( id );
         }
         else if (strcmp((const char*)ptr, "sendTestValue") == 0)
         {
             uint8_t *cmdPtr;
             uint32_t id;        // CAN Node ID
-            uint32_t value;     // Value
+            int32_t value;      // Value
             uint32_t unit;      // 0 = PWM, 1 = rad, 2 = deg
+            
+            CAN_TX_SERVO_CMD_U can_ctrl_cmd;
             
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"id");
             id = atoi((char*)cmdPtr);
@@ -642,7 +446,34 @@ HTTP_IO_RESULT HTTPExecuteGet(void)
             cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"unit");
             unit = atoi((char*)cmdPtr);
             
-            Nop();      // TODO: Process test value data.
+            if(unit == 0) // PWM
+            {
+                can_ctrl_cmd.cmd_type = 0;      // PWM control
+                can_ctrl_cmd.cmd_pwm  = value;
+            }
+            else
+            if(unit == 1) // rad
+            {
+                can_ctrl_cmd.cmd_type = 1;      // Position control (rad)
+                can_ctrl_cmd.cmd_pos  = value;
+            }
+            else
+            if(unit == 2) // deg
+            {
+                can_ctrl_cmd.cmd_type = 1;      // Position control (rad)
+                
+                // convert value from degrees to milli-radians.
+                can_ctrl_cmd.cmd_pos = ((value * 174533) / 10000);
+            }
+            else
+            {
+                Nop();  // do nothing invalid 'unit' value.
+            }
+            
+            // Sent the command to the servo-node.
+            CANTxSet( CAN_TX_MSG_SERVO_CMD, 
+                      id,
+                      &can_ctrl_cmd.data_u32[ 0 ] );
         }
     }
 

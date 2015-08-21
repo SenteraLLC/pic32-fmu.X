@@ -49,10 +49,14 @@
       <itemPath>http/favicon.ico</itemPath>
       <itemPath>http/fmu.js</itemPath>
       <itemPath>http/index.htm</itemPath>
-      <itemPath>http/status.xml</itemPath>
       <itemPath>http/style.css</itemPath>
       <itemPath>http/bg.gif</itemPath>
       <itemPath>http/buttons.cgi</itemPath>
+      <itemPath>http/calReadData.xml</itemPath>
+      <itemPath>http/calWriteData.xml</itemPath>
+      <itemPath>http/uptimeData.xml</itemPath>
+      <itemPath>http/idWriteData.xml</itemPath>
+      <itemPath>http/nwData.xml</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"

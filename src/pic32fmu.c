@@ -11,11 +11,12 @@
 #include "init.h"
 #include "vn100.h"
 #include "oemstar.h"
-#include "fmucomm.h"
 #include "uart.h"
 #include "status.h"
 #include "adc.h"
 #include "emc1412.h"
+#include "fmucomm.h"
+#include "snode.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -42,17 +43,19 @@ int main()
         ADCTask();
         SPITask();
         UARTTask();  // NOTE: Task must occur before any function in software cycle which used received UART data.
-
+        
         // This task reads UDP data for processing; therefore this task
         // must be executed in the software cycle before any function
         // which gets UDP data.
         FMUCommTask();
         
         // Acquire sensor data. -------------------------------------
+        ADCTask();
         OEMStarTask();
         EMC1412Task();
         
         StatusTask();
+        SNodeTask();
         
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling

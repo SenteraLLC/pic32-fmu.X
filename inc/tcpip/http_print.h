@@ -65,9 +65,13 @@ extern uint8_t curHTTPID;
  * SECTION:  Generated Function Prototypes
  *****************************************************************************/
 void HTTPPrint(uint32_t callbackID);
+void HTTPPrint_calVal(void);
+void HTTPPrint_calReadResp(void);
+void HTTPPrint_calWriteResp(void);
+void HTTPPrint_idWriteResp(void);
 void HTTPPrint_builddate(void);
+void HTTPPrint_nwVal(void);
 void HTTPPrint_uptime(void);
-void HTTPPrint_feedback(void);
 
 /*****************************************************************************
  * FUNCTION: HTTPPrint
@@ -81,13 +85,25 @@ void HTTPPrint(uint32_t callbackID)
    switch(callbackID)
    {
         case 0x00000000:
-			HTTPPrint_builddate();
+			HTTPPrint_calVal();
 			break;
         case 0x00000001:
-			HTTPPrint_uptime();
+			HTTPPrint_calReadResp();
 			break;
         case 0x00000002:
-			HTTPPrint_feedback();
+			HTTPPrint_calWriteResp();
+			break;
+        case 0x00000003:
+			HTTPPrint_idWriteResp();
+			break;
+        case 0x00000004:
+			HTTPPrint_builddate();
+			break;
+        case 0x00000005:
+			HTTPPrint_nwVal();
+			break;
+        case 0x00000006:
+			HTTPPrint_uptime();
 			break;
        default:
            // Output notification for undefined values

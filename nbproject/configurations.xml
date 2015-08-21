@@ -36,22 +36,27 @@
       <itemPath>inc/ksz8895.h</itemPath>
       <itemPath>inc/softspi.h</itemPath>
       <itemPath>inc/fmucomm.h</itemPath>
-      <itemPath>inc/can.h</itemPath>
-      <itemPath>inc/util.h</itemPath>
-      <itemPath>inc/uart.h</itemPath>
       <itemPath>inc/adc.h</itemPath>
       <itemPath>inc/status.h</itemPath>
       <itemPath>inc/emc1412.h</itemPath>
       <itemPath>inc/i2c.h</itemPath>
+      <itemPath>inc/util.h</itemPath>
+      <itemPath>inc/can.h</itemPath>
+      <itemPath>inc/uart.h</itemPath>
+      <itemPath>inc/snode.h</itemPath>
     </logicalFolder>
     <logicalFolder name="f1" displayName="HTTP Files" projectFiles="true">
       <itemPath>http/favicon.ico</itemPath>
       <itemPath>http/fmu.js</itemPath>
       <itemPath>http/index.htm</itemPath>
-      <itemPath>http/status.xml</itemPath>
       <itemPath>http/style.css</itemPath>
       <itemPath>http/bg.gif</itemPath>
       <itemPath>http/buttons.cgi</itemPath>
+      <itemPath>http/calReadData.xml</itemPath>
+      <itemPath>http/calWriteData.xml</itemPath>
+      <itemPath>http/uptimeData.xml</itemPath>
+      <itemPath>http/idWriteData.xml</itemPath>
+      <itemPath>http/nwData.xml</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -90,13 +95,14 @@
       <itemPath>src/softspi.c</itemPath>
       <itemPath>src/fmucomm.c</itemPath>
       <itemPath>src/exceptions.c</itemPath>
-      <itemPath>src/can.c</itemPath>
-      <itemPath>src/util.c</itemPath>
-      <itemPath>src/uart.c</itemPath>
       <itemPath>src/status.c</itemPath>
       <itemPath>src/adc.c</itemPath>
       <itemPath>src/emc1412.c</itemPath>
       <itemPath>src/i2c.c</itemPath>
+      <itemPath>src/util.c</itemPath>
+      <itemPath>src/can.c</itemPath>
+      <itemPath>src/uart.c</itemPath>
+      <itemPath>src/snode.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

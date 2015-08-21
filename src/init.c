@@ -12,7 +12,6 @@
 #include "can.h"
 #include "uart.h"
 
-
 //==============================================================================
 
 static void InitCPU()
@@ -303,11 +302,11 @@ void InitBoard()
     InitTMR();
     InitSPI();
     InitINT();
-    CANInit();
     UARTInit();
+    CANInit();
     InitADC();
     InitI2C();
-    
+
     // Initialize external hardware peripherals.
     KSZ8895Init();
 

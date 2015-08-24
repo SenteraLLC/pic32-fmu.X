@@ -277,6 +277,8 @@ void FMUCommRead( void )
     
     static FMUCOMM_PKT_WRAP pkt_wrap;
     
+    FMUCOMM_RX_TYPE_E rxCfgIdx;
+    
     uint16_t UDPByteCnt;
     uint16_t UDPByteIdx;
     
@@ -350,8 +352,7 @@ void FMUCommRead( void )
                     }
                     case UDP_SM_TYPE:
                     {
-                        FMUCOMM_RX_TYPE_E rxCfgIdx;
-                        bool              typeValid = false;
+                        bool typeValid = false;
                          
                         (void) UDPGet( &pkt_wrap.type );
                         
@@ -363,6 +364,10 @@ void FMUCommRead( void )
                             if( pkt_wrap.type == fmucommRxCfg[ rxCfgIdx ].type )
                             {
                                 typeValid = true;
+                                
+                                // Exit loop when match is found so 'rxCfgIdx'
+                                // is maintained at the matching index
+                                break;
                             }
                         }
                         
@@ -392,8 +397,8 @@ void FMUCommRead( void )
                         (void) UDPGet( &pkt_wrap.lengthMsb );
                         
                         // Received length matches required value ?
-                        if( ( pkt_wrap.length >= fmucommRxCfg[ pkt_wrap.type ].lengthLb ) &&
-                            ( pkt_wrap.length <= fmucommRxCfg[ pkt_wrap.type ].lengthUb ) )
+                        if( ( pkt_wrap.length >= fmucommRxCfg[ rxCfgIdx ].lengthLb ) &&
+                            ( pkt_wrap.length <= fmucommRxCfg[ rxCfgIdx ].lengthUb ) )
                         {
                             UDPState++;
                         }
@@ -411,7 +416,7 @@ void FMUCommRead( void )
                         
                         // Read the next UPD byte into the applicable packet's 
                         // payload allocation.
-                        (void) UDPGet( &FMUCommRxPkt[ pkt_wrap.type ].pl_p[ plIdx ] );
+                        (void) UDPGet( &FMUCommRxPkt[ rxCfgIdx ].pl_p[ plIdx ] );
                         
                         plIdx++;
                         
@@ -449,19 +454,19 @@ void FMUCommRead( void )
                         // calculation is necessary because packet fields are in non-
                         // contiguous memory locations.
                         //
-                        calcCRC = utilCRC16( &pkt_wrap.type,                           sizeof( pkt_wrap.type   ), 0       );
-                        calcCRC = utilCRC16( &pkt_wrap.length,                         sizeof( pkt_wrap.length ), calcCRC );
-                        calcCRC = utilCRC16( &FMUCommRxPkt[ pkt_wrap.type ].pl_p[ 0 ], pkt_wrap.length,           calcCRC );
+                        calcCRC = utilCRC16( &pkt_wrap.type,                      sizeof( pkt_wrap.type   ), 0       );
+                        calcCRC = utilCRC16( &pkt_wrap.length,                    sizeof( pkt_wrap.length ), calcCRC );
+                        calcCRC = utilCRC16( &FMUCommRxPkt[ rxCfgIdx ].pl_p[ 0 ], pkt_wrap.length,           calcCRC );
                         
                         // Calculated CRC matches that received ?
                         if( calcCRC == pkt_wrap.crc )
                         {
                             // Identify message as valid.
-                            FMUCommRxPkt[ pkt_wrap.type ].valid = true;
+                            FMUCommRxPkt[ rxCfgIdx ].valid = true;
                             
                             // Copy the wrapper field to the applicable message
                             // for possible processing by accessed module.
-                            memcpy( &FMUCommRxPkt[ pkt_wrap.type ].wrap,
+                            memcpy( &FMUCommRxPkt[ rxCfgIdx ].wrap,
                                     &pkt_wrap,
                                     sizeof( pkt_wrap ) );
                         }

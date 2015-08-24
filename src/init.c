@@ -157,7 +157,6 @@ static void InitI2C(void)
 static void InitINT()
 {
     INTCONSET = _INTCON_MVEC_MASK;      // Enable multi-vectored mode.
-    asm("ei");                          // Enable interrupts.
 }
 
 //==============================================================================

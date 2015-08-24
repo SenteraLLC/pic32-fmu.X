@@ -452,12 +452,6 @@ static void SNodeCtrlCmdTask( void )
         snodes_max = (uint8_t) ( eth_ctrl_cmd_p->wrap.length / 
                                  sizeof( FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ) );
         
-        // Limit number of commanded Servo-Nodes to maximum number supported.
-        if( snodes_max > 10 )
-        {
-            snodes_max = 10;
-        }
-        
         // Loop through each node's information.
         for( snodes_idx = 0; snodes_idx < snodes_max; snodes_idx++ )
         {

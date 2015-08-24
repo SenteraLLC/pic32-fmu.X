@@ -306,9 +306,6 @@ void InitBoard()
     InitADC();
     InitI2C();
 
-    // Initialize external hardware peripherals.
-    KSZ8895Init();
-
     // Initialize software libraries.
     InitTCPIPStack();
     

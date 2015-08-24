@@ -339,31 +339,31 @@ static void SNodeCtrlDataTask( void )
                 
     } taskState = SM_RX_MSGS;
     
-    static uint32_t time_base_us;
-    static bool     tx_msg_ready = false;
+    static uint32_t prev_tx_time = 0;
+    static bool     tx_msg_ready  = false;
            uint8_t  surface_num_of;
            bool     queue_ok;
     
     FMUCOMM_CTRL_SURFACE_DATA_PL eth_ctrl_data_msg;
 
     // Required time has elapsed since last Control Surface Data transmission ?
-    if( CoreTime32usGet() - time_base_us >= 10000 )
+    if( CoreTime32usGet() - prev_tx_time > 10000 )
     {
-        // Increment time-base by fixed transmission period time to eliminate
+        // Increment tx-time by fixed transmission period time to eliminate
         // drift.
-        time_base_us += 10000;
+        prev_tx_time += 10000;
         
-        // time-base is still already elapsed ?
+        // Transmission period is still already elapsed ?
         //
         // Note: This could occur if processing inhibited this function's 
         // execution for an extended amount of time.
         //
-        if( CoreTime32usGet() - time_base_us >= 10000 )
+        if( CoreTime32usGet() - prev_tx_time > 10000 )
         {
-            // Update time-base to the current time.  Single or multiple
-            // timeouts have elapsed.  Setting time-base to the current time
-            // prevents repeated identifications of timeout having elapsed.
-            time_base_us = CoreTime32usGet();
+            // Update tx-time to the current time.  Single or multiple
+            // periods have elapsed.  Setting tx-time to the current time
+            // prevents repeated identifications of the period having elapsed.
+            prev_tx_time = CoreTime32usGet();
         }
         
         // Transition to start the evaluation and build of a new Ethernet

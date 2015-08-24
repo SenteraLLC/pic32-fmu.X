@@ -17,6 +17,7 @@
 #include "emc1412.h"
 #include "fmucomm.h"
 #include "snode.h"
+#include "ksz8895.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -34,6 +35,7 @@ int main()
     asm volatile ("ei");    // Enable Global interrupts.
     
     UARTStartup();          // Startup UART operation.
+    KSZ8895Init();          // Initialize external Ethernet switch.
     
     for (;;)                // Main program loop.
     {

@@ -128,7 +128,7 @@ typedef struct __attribute__ ((packed))
 {
     union
     {
-        FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ctrlSurface[ 20 ];
+        FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ctrlSurface[ 10 ];
         
         uint8_t pl_u8[ 120 ];
     };
@@ -229,7 +229,7 @@ typedef struct __attribute__ ((packed))
 
 typedef struct __attribute__ ((packed))
 {
-    FMUCOMM_CTRL_SURFACE_DATA_PL_FIELD ctrlSurface[ 20 ];
+    FMUCOMM_CTRL_SURFACE_DATA_PL_FIELD ctrlSurface[ 10 ];
             
 } FMUCOMM_CTRL_SURFACE_DATA_PL;
 

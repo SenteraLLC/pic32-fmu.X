@@ -21,7 +21,7 @@
 // *****************************************************************************
 
 // The number of Servo-Nodes available in the module data buffer.
-#define SNODE_RX_BUF_SIZE 20
+#define SNODE_RX_BUF_SIZE 10
 
 // Maximum number of CAN message read on each 'Task' execution.
 #define SNODE_CTRL_DATA_MSG_MAX 4
@@ -339,12 +339,11 @@ static void SNodeCtrlDataTask( void )
                 
     } taskState = SM_RX_MSGS;
     
-    static uint32_t prev_tx_time = 0;
-    static bool     tx_msg_ready  = false;
-           uint8_t  surface_num_of;
-           bool     queue_ok;
+    static FMUCOMM_CTRL_SURFACE_DATA_PL eth_ctrl_data_msg;
     
-    FMUCOMM_CTRL_SURFACE_DATA_PL eth_ctrl_data_msg;
+    static uint32_t prev_tx_time   = 0;
+    static bool     tx_msg_ready   = false;
+    static uint8_t  surface_num_of = 0;
 
     // Required time has elapsed since last Control Surface Data transmission ?
     if( CoreTime32usGet() - prev_tx_time > 10000 )
@@ -411,6 +410,8 @@ static void SNodeCtrlDataTask( void )
     // Ethernet message ready for transmission ?
     if( tx_msg_ready == true )
     {
+        bool queue_ok;
+        
         // Queue the message for transmission.
         queue_ok = FMUCommSet( FMUCOMM_TYPE_CTRL_SURFACE_DATA, 
                                (uint8_t*) &eth_ctrl_data_msg,
@@ -451,12 +452,6 @@ static void SNodeCtrlCmdTask( void )
         // Determine number of nodes commanded
         snodes_max = (uint8_t) ( eth_ctrl_cmd_p->wrap.length / 
                                  sizeof( FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ) );
-        
-        // Limit number of commanded Servo-Nodes to maximum number supported.
-        if( snodes_max > 10 )
-        {
-            snodes_max = 10;
-        }
         
         // Loop through each node's information.
         for( snodes_idx = 0; snodes_idx < snodes_max; snodes_idx++ )

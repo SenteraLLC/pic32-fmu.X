@@ -152,7 +152,7 @@ void HTTPPrint_calVal(void)
     //
     // Total string size required is: 15 * 12 = 180.
     //
-    static char msg[200];
+    char msg[200];
     
     if (TCPIsPutReady(sktHTTP) < sizeof(msg))
     {
@@ -287,7 +287,7 @@ void HTTPPrint_nwVal(void)
     //
     // Total string size required is: 2 + (23 * #nodes) + 50.  With possible number 
     // of nodes equal to '10', the maximum string size is 282.
-    static char msg[300];
+    char msg[300];
     
     if (TCPIsPutReady(sktHTTP) < sizeof(msg))
     {
@@ -515,7 +515,7 @@ HTTP_IO_RESULT HTTPExecuteGet(void)
 
 static HTTP_IO_RESULT HTTPPostSaveFMUConfig(void)
 {
-static void* cDest;
+    static void* cDest;
     char value[HTTP_MAX_DATA_LEN];
 
     #define SM_POST_CONFIG_READ_NAME		(0u)

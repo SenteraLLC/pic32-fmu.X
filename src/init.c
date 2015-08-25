@@ -80,6 +80,16 @@ static void InitGPIO()
     ODCBbits.ODCB7 = 0;         // Normal
     TRISBbits.TRISB7 = 0;       // Output
     LATBbits.LATB7 = 1;         // Logic High
+    
+    //-----------------------------------------------------
+    
+    // Microhard Nano !CONFIG (RC13)
+    TRISCSET = _TRISC_TRISC13_MASK;     // Input (see microhard source module)
+
+    // Microhard Nano Enable (RC15)
+    TRISCCLR = _TRISC_TRISC15_MASK;     // Set as discrete output.
+    ODCCSET  = _ODCC_ODCC15_MASK;       // Set as CMOS drivers (i.e. not open-drain).
+    LATCCLR  = _LATC_LATC15_MASK;       // Set the output low (0).
 }
 
 //==============================================================================

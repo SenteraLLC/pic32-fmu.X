@@ -52,7 +52,6 @@ int main()
         FMUCommTask();
         
         // Acquire sensor data. -------------------------------------
-        ADCTask();
         OEMStarTask();
         EMC1412Task();
         

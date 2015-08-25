@@ -130,7 +130,7 @@ typedef struct __attribute__ ((packed))
     {
         FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ctrlSurface[ 10 ];
         
-        uint8_t pl_u8[ 120 ];
+        uint8_t pl_u8[ 60 ];
     };
             
 } FMUCOMM_CTRL_SURFACE_CMD_PL;

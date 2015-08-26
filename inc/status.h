@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief Vector Navigation 100 (VN-100) driver.
+/// @brief Annunciate FMU Status.
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef VN100_H_
-#define	VN100_H_
+#ifndef STATUS_H_
+#define	STATUS_H_
 
 // *****************************************************************************
 // ************************** System Include Files *****************************
@@ -31,6 +31,9 @@
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-void VN100Task( void );
+// Perform the status task - Heartbeat information is transmitted over Ethernet
+// and a heartbeat LED is toggled.
+void StatusTask( void );
 
-#endif	// VN100_H_
+#endif	// STATUS_H_
+

@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief Vector Navigation 100 (VN-100) driver.
+/// @brief Utility functions.
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef VN100_H_
-#define	VN100_H_
+#ifndef UTIL_H_
+#define	UTIL_H_
 
 // *****************************************************************************
 // ************************** System Include Files *****************************
@@ -31,6 +31,7 @@
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-void VN100Task( void );
+// Calculates the CCITT-16 CRC for the given data.
+uint16_t utilCRC16( const void* data_p, uint16_t data_len, uint16_t crc_start );
 
-#endif	// VN100_H_
+#endif	// UTIL_H_

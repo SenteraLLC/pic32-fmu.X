@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief Vector Navigation 100 (VN-100) driver.
+/// @brief Analog to Digital Converter (ADC) driver.
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef VN100_H_
-#define	VN100_H_
+#ifndef ADC_H_
+#define	ADC_H_
 
 // *****************************************************************************
 // ************************** System Include Files *****************************
@@ -31,6 +31,11 @@
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-void VN100Task( void );
+// Read ADC input(s).
+void ADCTask( void );
 
-#endif	// VN100_H_
+// Return the Power Supply ADC value.
+uint16_t ADCVbattGet( void );
+
+#endif	// ADC_H_
+

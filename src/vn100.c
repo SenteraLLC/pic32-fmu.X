@@ -321,7 +321,7 @@ void VN100Task( void )
         }
         case SM_DELAY:
         {
-            static uint64_t prevExeTime = 0;
+            static uint32_t prevExeTime = 0;
             
             // Required time has elapsed ?
             //
@@ -334,13 +334,27 @@ void VN100Task( void )
             // (i.e. attitude data) at a 400Hz rate. Therefore, fresh data will
             // always be available at the 100Hz annunciation rate.
             //
-            if( CoreTime64usGet() - prevExeTime > 10000 )
+            if( CoreTime32usGet() - prevExeTime > 10000 )
             {
+                // Increment by fixed transmission period time to eliminate
+                // drift.
+                prevExeTime += 10000;
+
+                // Still identified that require time has elapsed ?
+                //
+                // Note: This could occur if processing inhibited this function's 
+                // execution for an extended amount of time.
+                //
+                if( CoreTime32usGet() - prevExeTime > 10000 )
+                {
+                    // Update to the current time.  Single or multiple timeouts
+                    // have elapsed.  Updating to the current time prevents
+                    // repeated identifications of timeout having elapsed.
+                    prevExeTime = CoreTime32usGet();
+                }
+
                 // Perform another task cycle.
                 vn100TaskState = SM_SPI_IMU_GET;
-                
-                // Latch the execution time for evaluation on next delay.
-                prevExeTime = CoreTime64usGet();
             }
             
             break;

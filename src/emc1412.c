@@ -129,18 +129,27 @@ void EMC1412Task( void )
             static uint32_t prevExeTime = 0;
             
             // Required time has elapsed ?
-            //
-            // Delay required amount of time so that a cycle of the Task
-            // Execution is performed every ~1s. This is to accomplish an
-            // FMU Heartbeat annunciation on LAN at 1Hz.
-            //
-            if( CoreTime32usGet() - prevExeTime > 1000000 )
+            if( CoreTime32usGet() - prevExeTime > 500000 )
             {
+                // Increment by fixed transmission period time to eliminate
+                // drift.
+                prevExeTime += 500000;
+
+                // Still identified that require time has elapsed ?
+                //
+                // Note: This could occur if processing inhibited this function's 
+                // execution for an extended amount of time.
+                //
+                if( CoreTime32usGet() - prevExeTime > 500000 )
+                {
+                    // Update to the current time.  Single or multiple timeouts
+                    // have elapsed.  Updating to the current time prevents
+                    // repeated identifications of timeout having elapsed.
+                    prevExeTime = CoreTime32usGet();
+                }
+
                 // Perform another task cycle.
                 EMC1412TaskState++;
-                
-                // Latch the execution time for evaluation on next delay.
-                prevExeTime = CoreTime32usGet();
             }
             
             break;

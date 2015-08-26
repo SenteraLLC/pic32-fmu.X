@@ -150,7 +150,7 @@ void UARTInit( void )
 void UARTStartup( void )
 {
     // Turn module on.
-    U1MODEbits.ON = 1;
+    U1MODESET = _U1MODE_ON_MASK;
 }
 
 void UARTTask( void )
@@ -160,7 +160,7 @@ void UARTTask( void )
     // Flush any remaining data into the reception buffer before updating
     // the circular buffer.  Trigger the receiver interrupt to read any
     // remaining UART data.
-    IFS0bits.U1RXIF = 1;
+    IFS0SET = _IFS0_U1RXIF_MASK;
     
     cb_next_idx = mUART_RX_CB_NEXT_IDX( uart_rx_cb.buf_idx );
     
@@ -220,7 +220,7 @@ bool UARTSet( UART_TX_BUF_S* tx_buf_p )
             uart_tx_fifo.tail_idx = mUART_TX_FIFO_NEXT_IDX( uart_tx_fifo.tail_idx );
             
             // Enable the transmit interrupt to send the buffered data.
-            IEC0bits.U1TXIE = 1;
+            IEC0SET = _IEC0_U1TXIE_MASK;
         }
     }
         
@@ -271,7 +271,7 @@ static void UARTBufRx( void )
     // Note: this must be performed after the condition which caused the 
     // interrupt (i.e. received data) is addressed.
     //
-    IFS0bits.U1RXIF = 0;
+    IFS0CLR = _IFS0_U1RXIF_MASK;
 }
 
 // Read data from hardware buffer into supplied buffer. 
@@ -306,7 +306,7 @@ static uint8_t UARTRead( uint8_t* data_p, uint16_t data_len )
         // Note: The overflow flag needs to be cleared because all UART
         // reception is inhibited while this hardware flag is set.
         //
-        U1STAbits.OERR = 0;
+        U1STACLR = _U1STA_OERR_MASK;
     }
     
     // Read data from the hardware buffer until it is empty.
@@ -387,7 +387,7 @@ static void UARTBufTX( void )
     if( uart_tx_fifo.head_idx == uart_tx_fifo.tail_idx )
     {
         // Disable transmitter interrupt since no additional data to send.
-        IEC0bits.U1TXIE = 0;
+        IEC0CLR = _IEC0_U1TXIE_MASK;
     }
     
     // Clear the interrupt flag.
@@ -395,7 +395,7 @@ static void UARTBufTX( void )
     // Note: this must be performed after the condition which caused the 
     // interrupt (i.e. transmitter empty) is addressed.
     //
-    IFS0bits.U1TXIF = 0;
+    IFS0CLR = _IFS0_U1TXIF_MASK;
 }
 
 // Write supplied data to the hardware transmit buffer.

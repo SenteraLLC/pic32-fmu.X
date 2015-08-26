@@ -83,10 +83,10 @@ int KSZ8895WriteReg(uint8_t address, uint8_t data)
 //==============================================================================
 
 void KSZ8895Reset()
-{
-    LATDbits.LATD5 = 0;     // Low
-    DelayMs(100);           // Allow time for capacitive load to switch.
-    LATDbits.LATD5 = 1;     // High
-    DelayMs(300);           // Allow time for switch to power up.
+{    
+    LATDCLR = _LATD_LATD5_MASK; // Low
+    DelayMs(100);               // Allow time for capacitive load to switch.
+    LATDSET = _LATD_LATD5_MASK; // High
+    DelayMs(300);               // Allow time for switch to power up.
 }
 

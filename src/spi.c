@@ -9,9 +9,9 @@
 #include "spi.h"
 
 
-static SPI_XFER *spi2Xfer;              // Null if idle, else pointer to data.
-static volatile unsigned int rxCount;   // Count of SPI bytes received.
-static volatile unsigned int txCount;   // Count of SPI bytes transmitted.
+static volatile SPI_XFER *spi2Xfer   = NULL;  // Null if idle, else pointer to data.
+static volatile unsigned int rxCount = 0;     // Count of SPI bytes received.
+static volatile unsigned int txCount = 0;     // Count of SPI bytes transmitted.
 
 
 //==============================================================================

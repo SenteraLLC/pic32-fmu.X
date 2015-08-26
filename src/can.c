@@ -19,27 +19,6 @@
 // ************************** Defines ******************************************
 // *****************************************************************************
 
-// Mask(s) for the CAN FIFO Control Register
-//
-// TXREQ (bit 3) - bit set to '1' to request transmission; hardware sets value 
-//                 to '0' to identify completion of FIFO transmission.
-// 
-// UINC (bit 13) - set to '1' by software to increment the FIFO head.
-//
-#define CAN_FIFOCON_TXREQ_MASK      0x00000008
-#define CAN_FIFOCON_UINC_MASK       0x00002000
-
-// Mask(s) for the CAN FIFO Interrupt Register
-//
-// TXNFULLIF (bit 10) - '1' identifies FIFO as not full; '0' identifies FIFO as
-//                      full.
-//
-// RXNEMPTYIF (bit 0) - '1' identifies FIFO as not empty; '0' identifies FIFO as
-//                      empty.
-//
-#define CAN_FIFOINT_TXNFULLIF_MASK  0x00000400
-#define CAN_FIFOINT_RXNEMPTYIF_MASK 0x00000001
-
 // *****************************************************************************
 // ************************** Definitions **************************************
 // *****************************************************************************
@@ -305,7 +284,7 @@ void CANTxSet ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, const uint32_t p
     uint32_t*   msg_p;
     
     // Transmit FIFO is not already full ?
-    if( ( *tx_hw_map[ tx_msg_type ].fifoint_p & CAN_FIFOINT_TXNFULLIF_MASK ) != 0 )
+    if( ( *tx_hw_map[ tx_msg_type ].fifoint_p & _C2FIFOINT0_TXNFULLIF_MASK ) != 0 )
     {
         // Get the address of the message buffer to write to from the C2FIFOUAn
         // register. Convert this physical address to virtual address.
@@ -325,10 +304,10 @@ void CANTxSet ( CAN_TX_MSG_TYPE_E tx_msg_type, uint8_t dest_id, const uint32_t p
         CANTxBuildHeader( tx_msg_type, dest_id, msg_p );
         
         // Increment the FIFO index.
-        *tx_hw_map[ tx_msg_type ].fifoconset_p = CAN_FIFOCON_UINC_MASK;
+        *tx_hw_map[ tx_msg_type ].fifoconset_p = _C2FIFOCON0_UINC_MASK;
         
         // Request (i.e. set request bit to '1') the transmission.
-        *tx_hw_map[ tx_msg_type ].fifoconset_p = CAN_FIFOCON_TXREQ_MASK;
+        *tx_hw_map[ tx_msg_type ].fifoconset_p = _C2FIFOCON0_TXREQ_MASK;
     }
 }
 
@@ -358,7 +337,7 @@ bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint8_t* src_id_p, uint32_t paylo
     uint32_t*   msg_p;
     
     // Message in receiver FIFO ?
-    if( ( *rx_hw_map[ rx_msg_type ].fifoint_p & CAN_FIFOINT_RXNEMPTYIF_MASK ) != 0 )
+    if( ( *rx_hw_map[ rx_msg_type ].fifoint_p & _C2FIFOINT0_RXNEMPTYIF_MASK ) != 0 )
     {
         // Identify data as received.
         data_rx_flag  = true;
@@ -386,7 +365,7 @@ bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint8_t* src_id_p, uint32_t paylo
         }
         
         // Increment the FIFO index to identify message as received.
-        *rx_hw_map[ rx_msg_type ].fifoconset_p = CAN_FIFOCON_UINC_MASK;
+        *rx_hw_map[ rx_msg_type ].fifoconset_p = _C2FIFOCON0_UINC_MASK;
     }
  
     return data_rx_flag;

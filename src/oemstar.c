@@ -132,9 +132,9 @@ static void OEMStarCmdFwd( void )
 static void OEMStarRspFwd( void )
 {
     static FMUCOMM_GPS_DATA_PL gps_data_pl;
-    static uint16_t            gps_data_len;
+    static uint16_t            gps_data_len = 0;
     
-    static uint32_t rx_time_us;
+    static uint32_t rx_time_us = 0;
     
     const UART_RX_BUF_S* uartRxBuf;
           bool           setSuccess;

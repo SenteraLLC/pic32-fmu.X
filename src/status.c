@@ -28,13 +28,13 @@
 /// The node type - value of '0' identifies node as a FMU node.
 static const uint8_t  status_node_type  = 0;
 
-static const uint8_t  status_fw_rev_ver = 0;    ///< Firmware revision version number.
+static const uint8_t  status_fw_rev_ver = 1;    ///< Firmware revision version number.
 static const uint8_t  status_fw_min_ver = 0;    ///< Firmware minor version number.
 static const uint8_t  status_fw_maj_ver = 0;    ///< Firmware major version number.
 
 static const uint8_t  status_hw_rev_ver = 0;    ///< Hardware revision version number.
 static const uint8_t  status_hw_min_ver = 0;    ///< Hardware minor version number.
-static const uint8_t  status_hw_maj_ver = 0;    ///< Hardware major version number.
+static const uint8_t  status_hw_maj_ver = 1;    ///< Hardware major version number.
 
 /// The serial number - set during manufacturing.
 static const uint32_t status_serial_num = 0;

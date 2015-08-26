@@ -63,7 +63,7 @@ typedef struct
 //
 static const FMUCOMM_RX_CFG fmucommRxCfg [ ] =
 {
-    { 'U', 'M', 'N', 0x00, 16,   16 },  // FMUCOMM_TYPE_HOST_HEARTBEAT     
+    { 'U', 'M', 'N', 0x00, 14,   14 },  // FMUCOMM_TYPE_HOST_HEARTBEAT     
     { 'U', 'M', 'N', 0x01,  3,   60 },  // FMUCOMM_TYPE_CTRL_SURFACE_CMD    
     { 'U', 'M', 'N', 0x02,  1, 1024 },  // FMUCOMM_TYPE_GPS_CMD   
     { 'U', 'M', 'N', 0x7F,  1, 1024 },  // FMUCOMM_TYPE_HOST_EXCEPTION 

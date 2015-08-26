@@ -21,13 +21,23 @@
 // ************************** Defines ******************************************
 // *****************************************************************************
 
-#define STATUS_FW_VERSION 0
-#define STATUS_HW_VERSION 0
-#define STATUS_SERIAL_NUM 0
-
 // *****************************************************************************
 // ************************** Definitions **************************************
 // *****************************************************************************
+
+/// The node type - value of '0' identifies node as a FMU node.
+static const uint8_t  status_node_type  = 0;
+
+static const uint8_t  status_fw_rev_ver = 0;    ///< Firmware revision version number.
+static const uint8_t  status_fw_min_ver = 0;    ///< Firmware minor version number.
+static const uint8_t  status_fw_maj_ver = 0;    ///< Firmware major version number.
+
+static const uint8_t  status_hw_rev_ver = 0;    ///< Hardware revision version number.
+static const uint8_t  status_hw_min_ver = 0;    ///< Hardware minor version number.
+static const uint8_t  status_hw_maj_ver = 0;    ///< Hardware major version number.
+
+/// The serial number - set during manufacturing.
+static const uint32_t status_serial_num = 0;
 
 // *****************************************************************************
 // ************************** Function Prototypes ******************************
@@ -87,9 +97,16 @@ static void StatusPktTask( void )
             bool setSuccess;
             
             // Populate FMU Heartbeat Packet information.
-            fmu_heartbeat_pl.fwVersion    = STATUS_FW_VERSION;
-            fmu_heartbeat_pl.hwVersion    = STATUS_HW_VERSION;
-            fmu_heartbeat_pl.serialNum    = STATUS_SERIAL_NUM;
+            fmu_heartbeat_pl.fwVersionRev = status_fw_rev_ver;
+            fmu_heartbeat_pl.fwVersionMin = status_fw_min_ver;       
+            fmu_heartbeat_pl.fwVersionMaj = status_fw_maj_ver;    
+                    
+            fmu_heartbeat_pl.hwVersionRev = status_hw_rev_ver;
+            fmu_heartbeat_pl.hwVersionMin = status_hw_min_ver;       
+            fmu_heartbeat_pl.hwVersionMaj = status_hw_maj_ver;  
+            
+            fmu_heartbeat_pl.serialNum    = status_serial_num;
+            
             fmu_heartbeat_pl.msUptime     = CoreTime32msGet();
             fmu_heartbeat_pl.inputVoltage = ADCVbattGet();
             fmu_heartbeat_pl.boardTemp    = EMC1412IntTempGet();

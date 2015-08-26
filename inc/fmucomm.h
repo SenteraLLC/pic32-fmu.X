@@ -104,13 +104,17 @@ typedef struct __attribute__ ((packed))
     {
         struct
         {
-            uint32_t fwVersion;     // Firmware version ID.
-            uint32_t hwVersion;     // Hardware version ID.
+            uint8_t	 fwVersionRev;  // Firmware revision version ID.
+            uint8_t	 fwVersionMin;  // Firmware minor version ID.
+            uint8_t	 fwVersionMaj;  // Firmware major version ID.
+            uint8_t	 hwVersionRev;  // Hardware revision version ID.
+            uint8_t	 hwVersionMin;  // Hardware minor version ID.
+            uint8_t	 hwVersionMaj;  // Hardware major version ID.
             uint32_t serialNum;     // Serial number.
             uint32_t msUptime;      // System uptime in milliseconds.
         };
         
-        uint8_t pl_u8[ 16 ];
+        uint8_t pl_u8[ 14 ];
     };
     
 } FMUCOMM_HOST_HEARTBEAT_PL;
@@ -163,8 +167,12 @@ typedef struct __attribute__ ((packed))
 
 typedef struct __attribute__ ((packed))
 {
-    uint32_t fwVersion;     // Firmware version ID.
-    uint32_t hwVersion;     // Hardware version ID.
+    uint8_t	 fwVersionRev;  // Firmware revision version ID.
+    uint8_t	 fwVersionMin;  // Firmware minor version ID.
+    uint8_t	 fwVersionMaj;  // Firmware major version ID.
+    uint8_t	 hwVersionRev;  // Hardware revision version ID.
+    uint8_t	 hwVersionMin;  // Hardware minor version ID.
+    uint8_t	 hwVersionMaj;  // Hardware major version ID.
     uint32_t serialNum;     // Serial number.
     uint32_t msUptime;      // System uptime in milliseconds.
     uint16_t inputVoltage;  // Input voltage in millivolts.

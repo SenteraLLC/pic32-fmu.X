@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief Annunciate FMU Status.
+/// @brief Monitor Host status and annunciate FMU status.
 ////////////////////////////////////////////////////////////////////////////////
 
 // *****************************************************************************
@@ -16,10 +16,14 @@
 #include "coretime.h"
 #include "adc.h"
 #include "emc1412.h"
+#include "can.h"
 
 // *****************************************************************************
 // ************************** Defines ******************************************
 // *****************************************************************************
+
+// The node type of the FMU. 0 = FMU, 1 = Servo-Node.
+#define STATUS_FMU_NODE_TYPE 0
 
 // *****************************************************************************
 // ************************** Definitions **************************************
@@ -39,12 +43,17 @@ static const uint8_t  status_hw_maj_ver = 1;    ///< Hardware major version numb
 /// The serial number - set during manufacturing.
 static const uint32_t status_serial_num = 0;
 
+/// Data from Host Heartbeat Ethernet message.
+static FMUCOMM_HOST_HEARTBEAT_PL status_host_hb_data;
+
 // *****************************************************************************
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
 static void StatusLEDTask( void );
-static void StatusPktTask( void );
+static void StatusFMUHbTask( void );
+static void StatusFMUNodeTask( void );
+static void StatusHostHbTask( void );
 
 // *****************************************************************************
 // ************************** Global Functions *********************************
@@ -53,8 +62,9 @@ static void StatusPktTask( void );
 void StatusTask( void )
 {
     StatusLEDTask();
-    
-    StatusPktTask();
+    StatusFMUHbTask();
+    StatusFMUNodeTask();
+    StatusHostHbTask();
 }
 
 // *****************************************************************************
@@ -80,7 +90,7 @@ static void StatusLEDTask( void )
 }
 
 // Transmit the FMU Heartbeat packet at a 1Hz rate.
-static void StatusPktTask( void )
+static void StatusFMUHbTask( void )
 {
     static enum 
     {
@@ -163,4 +173,111 @@ static void StatusPktTask( void )
     return;
 }
 
+// Periodically send the Node Status and Node Version CAN messages.
+static void StatusFMUNodeTask( void )
+{
+    static uint32_t prevExeTime = 0;
+    
+    CAN_TX_NODE_STATUS_U node_status_msg;
+    CAN_TX_NODE_VER_U    node_ver_msg;
+    
+    // Required time has elapsed ?
+    if( CoreTime32usGet() - prevExeTime > 500000 )
+    {
+        // Increment by fixed transmission period time to eliminate
+        // drift.
+        prevExeTime += 500000;
 
+        // Still identified that require time has elapsed ?
+        //
+        // Note: This could occur if processing inhibited this function's 
+        // execution for an extended amount of time.
+        //
+        if( CoreTime32usGet() - prevExeTime > 500000 )
+        {
+            // Update to the current time.  Single or multiple timeouts
+            // have elapsed.  Updating to the current time prevents
+            // repeated identifications of timeout having elapsed.
+            prevExeTime = CoreTime32usGet();
+        }
+
+        
+        // NODE STATUS MESSAGE -------------------------------------------------
+        
+        // Build the message.
+        //
+        // Note: RCON register truncated to 16-bits since upper 16-bits is all
+        // spares.
+        node_status_msg.reset_detail = (uint16_t) RCON;
+        
+        if( RCONbits.POR )
+        {
+            node_status_msg.reset_condition = 1;
+        }
+        else
+        if( RCONbits.BOR )
+        {
+            node_status_msg.reset_condition = 2;
+        }
+        else
+        if( RCONbits.SWR )
+        {
+            node_status_msg.reset_condition = 3;
+        }
+        else
+        {
+            node_status_msg.reset_condition = 4;
+        }
+        
+        // Reset the RCON register BOR and POR bits so that the reset condition
+        // can be detected on the next reset.
+        RCONCLR = _RCON_BOR_MASK;
+        RCONCLR = _RCON_POR_MASK;
+        
+        // Queue message for transmission.
+        //
+        // Note: destination ID set as zero b/c it is not applicable for the
+        // node status message which is a broadcast message.
+        //
+        CANTxSet( CAN_TX_MSG_NODE_STATUS, 
+                  0,
+                  &node_status_msg.data_u32[ 0 ] );
+        
+        
+        // NODE VERSION MESSAGE ------------------------------------------------
+        
+        // Build the message.
+        node_ver_msg.node_type  = STATUS_FMU_NODE_TYPE;
+        node_ver_msg.rev_ver    = status_fw_rev_ver;
+        node_ver_msg.min_ver    = status_fw_min_ver;
+        node_ver_msg.maj_ver    = status_fw_maj_ver;
+        node_ver_msg.serial_num = status_serial_num;
+        
+        // Queue message for transmission.
+        //
+        // Note: destination ID set as zero b/c it is not applicable for the
+        // node version message which is a broadcast message.
+        //
+        CANTxSet( CAN_TX_MSG_NODE_VER, 
+                  0,
+                  &node_ver_msg.data_u32[ 0 ] );
+    }
+}
+
+// Read the Host heartbeat message into module data.
+static void StatusHostHbTask( void )
+{
+    const FMUCOMM_RX_PKT*            host_hb_pkt;
+          FMUCOMM_HOST_HEARTBEAT_PL* host_hb_pl;
+          
+    host_hb_pkt = FMUCommGet( FMUCOMM_TYPE_HOST_HEARTBEAT );
+    
+    // valid Host Heartbeat message received ?
+    if( host_hb_pkt->valid == true )
+    {
+        host_hb_pl = (FMUCOMM_HOST_HEARTBEAT_PL*) host_hb_pkt->pl_p;
+        
+        // Copy message payload into module data.
+        status_host_hb_data = *host_hb_pl;
+    }
+}

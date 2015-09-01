@@ -18,6 +18,8 @@
 #include "fmucomm.h"
 #include "snode.h"
 #include "ksz8895.h"
+#include "sbus.h"
+#include "rc.h"
 
 // Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
@@ -55,6 +57,8 @@ int main()
         VN100Task();
         OEMStarTask();
         EMC1412Task();
+        SBusTask();
+        RCTask();
         
         StatusTask();
         SNodeTask();

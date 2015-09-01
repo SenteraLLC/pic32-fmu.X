@@ -15,6 +15,7 @@
 #include "fmucomm.h"
 #include "can.h"
 #include "coretime.h"
+#include "rc.h"
 
 // *****************************************************************************
 // ************************** Macros *******************************************
@@ -440,34 +441,63 @@ static void SNodeCtrlCmdTask( void )
     uint8_t snodes_max;
     uint8_t snodes_idx;
     
-    eth_ctrl_cmd_p = FMUCommGet( FMUCOMM_TYPE_CTRL_SURFACE_CMD );
+    bool rc_ctrl;
+    uint16_t rc_servo_val[ 10 ];
     
-    // Control Surface Command received ?
-    if( eth_ctrl_cmd_p->valid == true )
+    rc_ctrl = RCCtrlGet();
+    
+    // RC commanded control to be performed ?
+    if( rc_ctrl == true )
     {
-        // Typecast received packet to controller command type to access packet
-        // content.
-        eth_ctrl_cmd_pl_p = (FMUCOMM_CTRL_SURFACE_CMD_PL*) eth_ctrl_cmd_p->pl_p;
+        RCServoGet( &rc_servo_val[ 0 ] );
         
-        // Determine number of nodes commanded
-        snodes_max = (uint8_t) ( eth_ctrl_cmd_p->wrap.length / 
-                                 sizeof( FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ) );
-        
+        snodes_max = 10;
         // Loop through each node's information.
         for( snodes_idx = 0; snodes_idx < snodes_max; snodes_idx++ )
         {
-            // Construct the CAN message to send with the received Ethernet
+            // Construct the CAN message to send with the received RC
             // data.
-            can_ctrl_cmd.cmd_type = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdType;
-            can_ctrl_cmd.cmd_pwm  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPwm;
-            can_ctrl_cmd.cmd_pos  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPos;
-            
+            can_ctrl_cmd.cmd_type = 0; // PWM control
+            can_ctrl_cmd.cmd_pwm  = rc_servo_val[ snodes_idx ];
+            can_ctrl_cmd.cmd_pos  = 0; // N/A
+
             // Forward the command to the Servo-node.
             CANTxSet( CAN_TX_MSG_SERVO_CMD, 
-                      eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].surfaceID,
+                      snodes_idx + 2,
                       &can_ctrl_cmd.data_u32[ 0 ] );
         }
-    } 
+    }
+    else // Host commanded control is to be performed.
+    {
+        eth_ctrl_cmd_p = FMUCommGet( FMUCOMM_TYPE_CTRL_SURFACE_CMD );
+
+        // Control Surface Command received ?
+        if( eth_ctrl_cmd_p->valid == true )
+        {
+            // Typecast received packet to controller command type to access packet
+            // content.
+            eth_ctrl_cmd_pl_p = (FMUCOMM_CTRL_SURFACE_CMD_PL*) eth_ctrl_cmd_p->pl_p;
+
+            // Determine number of nodes commanded
+            snodes_max = (uint8_t) ( eth_ctrl_cmd_p->wrap.length / 
+                                     sizeof( FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ) );
+
+            // Loop through each node's information.
+            for( snodes_idx = 0; snodes_idx < snodes_max; snodes_idx++ )
+            {
+                // Construct the CAN message to send with the received Ethernet
+                // data.
+                can_ctrl_cmd.cmd_type = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdType;
+                can_ctrl_cmd.cmd_pwm  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPwm;
+                can_ctrl_cmd.cmd_pos  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPos;
+
+                // Forward the command to the Servo-node.
+                CANTxSet( CAN_TX_MSG_SERVO_CMD, 
+                          eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].surfaceID,
+                          &can_ctrl_cmd.data_u32[ 0 ] );
+            }
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

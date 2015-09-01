@@ -30,6 +30,15 @@
 //
 #define UART_RX_BUF_DATA_LEN 1024
 
+// Enumeration of supported UART hardware modules.
+typedef enum
+{
+    UART_MODULE_1,
+    UART_MODULE_2,       
+    UART_MODULE_MAX,
+            
+}UART_MODULE_E;
+
 // Definition of buffer for reception of UART data.
 typedef struct
 {
@@ -75,7 +84,7 @@ void UARTStartup( void );
 void UARTTask( void );
 
 // Get the freshest UART received data.
-const UART_RX_BUF_S* UARTGet( void );
+const UART_RX_BUF_S* UARTGet( UART_MODULE_E mod_sel );
 
 // Queue UART data for transmission.
 bool UARTSet( UART_TX_BUF_S* tx_buf_p );

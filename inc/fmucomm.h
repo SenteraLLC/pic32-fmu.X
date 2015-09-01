@@ -19,6 +19,8 @@
 // ************************** User Include Files *******************************
 // *****************************************************************************
 
+#include "sbus.h"
+
 // *****************************************************************************
 // ************************** Defines ******************************************
 // *****************************************************************************
@@ -43,6 +45,7 @@ typedef enum
     FMUCOMM_TYPE_GPS_DATA,          
     FMUCOMM_TYPE_AIR_DATA,          
     FMUCOMM_TYPE_CTRL_SURFACE_DATA, 
+    FMUCOMM_TYPE_RC_DATA,       
     FMUCOMM_TYPE_FMU_EXCEPTION,     
             
 } FMUCOMM_TX_TYPE_E;
@@ -240,6 +243,12 @@ typedef struct __attribute__ ((packed))
     FMUCOMM_CTRL_SURFACE_DATA_PL_FIELD ctrlSurface[ 10 ];
             
 } FMUCOMM_CTRL_SURFACE_DATA_PL;
+
+typedef struct __attribute__ ((packed))
+{
+    uint16_t chVal[ SBUS_CH_MAX ];
+    
+} FMUCOMM_CH_DATA_PL;
 
 typedef struct __attribute__ ((packed))
 {

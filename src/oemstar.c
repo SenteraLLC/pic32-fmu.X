@@ -140,7 +140,7 @@ static void OEMStarRspFwd( void )
           bool           setSuccess;
     
     // Get UART buffered data.
-    uartRxBuf = UARTGet();
+    uartRxBuf = UARTGet( UART_MODULE_1 );
     
     // UART data received ?
     if( uartRxBuf->data_len != 0 )

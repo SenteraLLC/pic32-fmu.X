@@ -44,6 +44,8 @@
       <itemPath>inc/can.h</itemPath>
       <itemPath>inc/uart.h</itemPath>
       <itemPath>inc/snode.h</itemPath>
+      <itemPath>inc/sbus.h</itemPath>
+      <itemPath>inc/rc.h</itemPath>
     </logicalFolder>
     <logicalFolder name="f1" displayName="HTTP Files" projectFiles="true">
       <itemPath>http/favicon.ico</itemPath>
@@ -103,6 +105,8 @@
       <itemPath>src/can.c</itemPath>
       <itemPath>src/uart.c</itemPath>
       <itemPath>src/snode.c</itemPath>
+      <itemPath>src/sbus.c</itemPath>
+      <itemPath>src/rc.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

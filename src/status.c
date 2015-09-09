@@ -29,6 +29,21 @@
 // ************************** Definitions **************************************
 // *****************************************************************************
 
+/// Structure defining space for storage of a serial number.
+///
+/// @note The tool used for programming the serial number has a minimum flash
+///       size (0x200) for preserving flash memory (i.e. a flash row size).  
+///       The serial number is spare padded to this minimum required size to
+///       interface with the tool.
+///
+typedef struct
+{
+    uint32_t val;
+    
+    uint8_t spare[ 508 ];
+    
+} STATUS_SERIAL_NUM_S;
+
 /// The node type - value of '0' identifies node as a FMU node.
 static const uint8_t  status_node_type  = 0;
 
@@ -40,8 +55,12 @@ static const uint8_t  status_hw_rev_ver = 0;    ///< Hardware revision version n
 static const uint8_t  status_hw_min_ver = 0;    ///< Hardware minor version number.
 static const uint8_t  status_hw_maj_ver = 1;    ///< Hardware major version number.
 
-/// The serial number - set during manufacturing.
-static const uint32_t status_serial_num = 0;
+/// The serial number - set during initial programming.
+///
+/// @note The serial number is set to the starting address of Program
+///       memory.
+///
+static const STATUS_SERIAL_NUM_S __attribute__((space(prog), address(0x9D000000))) status_serial_num;
 
 /// Data from Host Heartbeat Ethernet message.
 static FMUCOMM_HOST_HEARTBEAT_PL status_host_hb_data;
@@ -115,7 +134,7 @@ static void StatusFMUHbTask( void )
             fmu_heartbeat_pl.hwVersionMin = status_hw_min_ver;       
             fmu_heartbeat_pl.hwVersionMaj = status_hw_maj_ver;  
             
-            fmu_heartbeat_pl.serialNum    = status_serial_num;
+            fmu_heartbeat_pl.serialNum    = status_serial_num.val;
             
             fmu_heartbeat_pl.msUptime     = CoreTime32msGet();
             fmu_heartbeat_pl.inputVoltage = ADCVbattGet();
@@ -251,7 +270,7 @@ static void StatusFMUNodeTask( void )
         node_ver_msg.rev_ver    = status_fw_rev_ver;
         node_ver_msg.min_ver    = status_fw_min_ver;
         node_ver_msg.maj_ver    = status_fw_maj_ver;
-        node_ver_msg.serial_num = status_serial_num;
+        node_ver_msg.serial_num = status_serial_num.val;
         
         // Queue message for transmission.
         //

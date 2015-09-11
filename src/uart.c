@@ -7,12 +7,13 @@
 // ************************** System Include Files *****************************
 // *****************************************************************************
 
+#include <sys/attribs.h>
+
 // *****************************************************************************
 // ************************** User Include Files *******************************
 // *****************************************************************************
 
 #include "uart.h"
-#include <sys/attribs.h>
 
 // *****************************************************************************
 // ************************** Defines ******************************************
@@ -63,22 +64,37 @@ typedef struct
 // *****************************************************************************
 
 // UART hardware receiver overflow latch.
-static bool uart_oerr_latch = false;
+static bool uart_oerr_latch[ UART_MODULE_MAX ] = { false, false };
 
 // Number of UART receiver hardware errors (parity or framing) since reset.
-static uint16_t uart_err_cnt = 0;
+static uint16_t uart_err_cnt[ UART_MODULE_MAX ] = { 0 , 0 };
 
 // Circular buffer for receiving UART data.
-static UART_RX_CB_S uart_rx_cb =
+static UART_RX_CB_S uart_rx_cb[ UART_MODULE_MAX ] =
 {
+    // UART_MODULE_1
     {
-        { { 0 }, 0 },   // Start buffer as empty.
-        { { 0 }, 0 },   // Start buffer as empty.
-        { { 0 }, 0 },   // Start buffer as empty.
-        { { 0 }, 0 },   // Start buffer as empty.
+        {
+            { { 0 }, 0 },   // Start buffer as empty.
+            { { 0 }, 0 },   // Start buffer as empty.
+            { { 0 }, 0 },   // Start buffer as empty.
+            { { 0 }, 0 },   // Start buffer as empty.
+        },
+
+        0,                  // Buffer index to start of circular buffer.
     },
     
-    0,                  // Buffer index to start of circular buffer.
+    // UART_MODULE_2
+    {
+        {
+            { { 0 }, 0 },   // Start buffer as empty.
+            { { 0 }, 0 },   // Start buffer as empty.
+            { { 0 }, 0 },   // Start buffer as empty.
+            { { 0 }, 0 },   // Start buffer as empty.
+        },
+
+        0,                  // Buffer index to start of circular buffer.
+    },
 };
 
 // FIFO for transmitting UART data.
@@ -103,10 +119,10 @@ static UART_TX_FIFO_S uart_tx_fifo =
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-static void UARTBufRx( void );
+static void UARTBufRx( UART_MODULE_E mod_sel );
 static void UARTBufTX( void );
 
-static uint8_t UARTRead( uint8_t* data_p, uint16_t data_len );
+static uint8_t UARTRead( UART_MODULE_E mod_sel, uint8_t* data_p, uint16_t data_len );
 static uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len );
 
 // *****************************************************************************
@@ -115,6 +131,10 @@ static uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len );
 
 void UARTInit( void )
 {
+    //
+    // UART1 INITIALIZATION ----------------------------------------------------
+    //
+    
     U1MODEbits.ON = 0;          // Turn module off.
     
     U1MODEbits.UEN   = 0b00;    // Don't use U1CTS and U1RTS pins.
@@ -145,26 +165,62 @@ void UARTInit( void )
     
     // Enable the receive interrupt
     IEC0bits.U1RXIE = 1;
+    
+    //
+    // UART2 INITIALIZATION ----------------------------------------------------
+    //
+    
+    U2MODEbits.ON     = 0;      // Turn module off.
+    
+    U2MODEbits.UEN    = 0b00;   // Don't use U1CTS and U1RTS pins.
+    U2MODEbits.RXINV  = 1;      // Receiver polarity is inverted (idle sate is '0').
+    U2MODEbits.PDSEL  = 0b01;   // 8-bit data, even parity.
+    U2MODEbits.STSEL  = 1;      // 2 stop bits.
+    
+    U2STAbits.URXEN   = 1;      // Received enabled.
+    U2STAbits.URXISEL = 0b10;   // Interrupt generated while receiver 3/4 full.
+    
+    // Baud Rate = Fpb   / ( 16 * ( U1BRG + 1 ) )
+    //           = 80MHZ / ( 16 * ( 49    + 1 ) )
+    //           = 100,000
+    //
+    // Error %   = 0%
+    //
+    U2BRG = 49;
+    
+    // Set U2Rx interrupts to priority '1' and sub-priority to '0'.
+    IPC8bits.U2IP = 1;
+    IPC8bits.U2IS = 0;
+    
+    // Clear the U2Rx interrupt flags.
+    IFS1bits.U2RXIF = 0;
+    
+    // Enable the receive interrupt
+    IEC1bits.U2RXIE = 1;
 }
 
 void UARTStartup( void )
 {
-    // Turn module on.
+    // Turn modules on.
     U1MODESET = _U1MODE_ON_MASK;
+    U2MODESET = _U2MODE_ON_MASK;
 }
 
 void UARTTask( void )
 {
-    uint8_t cb_next_idx;
+    uint8_t cb1_next_idx;
+    uint8_t cb2_next_idx;
     
-    // Flush any remaining data into the reception buffer before updating
-    // the circular buffer.  Trigger the receiver interrupt to read any
+    // Flush any remaining data into the reception buffersa before updating
+    // the circular buffers.  Trigger the receiver interrupts to read any
     // remaining UART data.
     IFS0SET = _IFS0_U1RXIF_MASK;
+    IFS1SET = _IFS1_U2RXIF_MASK;
     
-    cb_next_idx = mUART_RX_CB_NEXT_IDX( uart_rx_cb.buf_idx );
+    cb1_next_idx = mUART_RX_CB_NEXT_IDX( uart_rx_cb[ UART_MODULE_1 ].buf_idx );
+    cb2_next_idx = mUART_RX_CB_NEXT_IDX( uart_rx_cb[ UART_MODULE_2 ].buf_idx );
     
-    // Setup next circular buffer index for receiving data.
+    // Setup next circular buffer indexes for receiving data.
     //
     // Note: data length of next element reset before updating buffer index
     // to prevent race condition of ISR updating buffer data between two
@@ -174,20 +230,23 @@ void UARTTask( void )
     // Note: 'uart_rx_cb.buf_idx' only modified by this function and update
     // is atomic.
     //
-    uart_rx_cb.buf_arr[ cb_next_idx ].data_len = 0;
-    uart_rx_cb.buf_idx = cb_next_idx;
+    uart_rx_cb[ UART_MODULE_1 ].buf_arr[ cb1_next_idx ].data_len = 0;
+    uart_rx_cb[ UART_MODULE_1 ].buf_idx = cb1_next_idx;
+    
+    uart_rx_cb[ UART_MODULE_2 ].buf_arr[ cb2_next_idx ].data_len = 0;
+    uart_rx_cb[ UART_MODULE_2 ].buf_idx = cb2_next_idx;
 }
 
-const UART_RX_BUF_S* UARTGet( void )
+const UART_RX_BUF_S* UARTGet( UART_MODULE_E mod_sel )
 {
     uint8_t prev_idx;
     
     // Get the previous index from the receiver circular buffer.  The current
     // index is used for receiving data while the previous index is the 
     // freshest data available for processing.
-    prev_idx = mUART_RX_CB_PREV_IDX( uart_rx_cb.buf_idx );
+    prev_idx = mUART_RX_CB_PREV_IDX( uart_rx_cb[ mod_sel ].buf_idx );
     
-    return ( &uart_rx_cb.buf_arr[ prev_idx ] );
+    return ( &uart_rx_cb[ mod_sel ].buf_arr[ prev_idx ] );
 }
 
 bool UARTSet( UART_TX_BUF_S* tx_buf_p )
@@ -231,36 +290,79 @@ bool UARTSet( UART_TX_BUF_S* tx_buf_p )
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Hardware buffer availability SPI1 interrupt.
+///
+/// This function empties the received hardware buffer and fills the hardware
+/// transmit buffer to keep 100% utilization of the UART interface when
+/// transferring data.
+////////////////////////////////////////////////////////////////////////////////
 void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void ) 
 {
     // Receiver caused interrupt ?
-    if( IFS0bits.U1RXIF == 1 )
+    //
+    // Note: Since multiple interrupts can trigger the ISR, both the enabling
+    // of the interrupt source, and the status flag must be checked.  That is,
+    // it is possible for the status flag to be set (Rx contains data) but the
+    // receiver interrupt to be disabled.
+    //
+    if( ( IEC0bits.U1RXIE == 1 ) &&
+        ( IFS0bits.U1RXIF == 1 ) )
     {
         // Service the receiver.
-        UARTBufRx();
+        UARTBufRx( UART_MODULE_1 );
     }
     
     // Transmitter caused interrupt ?
-    if( IFS0bits.U1TXIF == 1 )
+    //
+    // Note: Since multiple interrupts can trigger the ISR, both the enabling
+    // of the interrupt source, and the status flag must be checked.  That is,
+    // it is possible for the status flag to be set (Tx is empty) but the
+    // transmitter interrupt to be disabled.
+    //
+    if( ( IEC0bits.U1TXIE == 1 ) &&
+        ( IFS0bits.U1TXIF == 1 ) )
     {
         // Service the transmitter.
         UARTBufTX();
     }
 }
 
-// Service the receiver interrupt.  The receiver hardware buffer content is
-// copied into module data.
-static void UARTBufRx( void )
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Hardware buffer availability SPI2 interrupt.
+///
+/// @note   Only receiver is enabled for UART2, so if interrupt occurs it must
+/// be b/c of the receiver.
+///
+/// This function empties the received hardware buffer to keep 100% utilization 
+/// of the UART interface when receiving data.
+////////////////////////////////////////////////////////////////////////////////
+void __ISR ( _UART_2_VECTOR, IPL1SOFT) UART2ISR( void ) 
 {
+    // Service the receiver.
+    UARTBufRx( UART_MODULE_2 );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Buffer received UART data.
+///
+/// @param  mod_sel
+///             The hardware module to read received data.
+///
+/// This function manages received hardware to receive data.
+////////////////////////////////////////////////////////////////////////////////
+static void UARTBufRx( UART_MODULE_E mod_sel )
+{ 
     UART_RX_BUF_S* rx_buf_elem;
     uint8_t        read_cnt;
 
     // Perform intermediate access of current receiver buffer element used 
     // for storing data to increase processing speed and reduce line length.
-    rx_buf_elem = &uart_rx_cb.buf_arr[ uart_rx_cb.buf_idx ];
+    rx_buf_elem = &uart_rx_cb[ mod_sel ].buf_arr[ uart_rx_cb[ mod_sel ].buf_idx ];
     
     // Receive available data.
-    read_cnt = UARTRead( &rx_buf_elem->data[ rx_buf_elem->data_len ],
+    read_cnt = UARTRead( mod_sel,
+                         &rx_buf_elem->data[ rx_buf_elem->data_len ],
                          ( UART_RX_BUF_DATA_LEN - rx_buf_elem->data_len ) );
 
     // Manage buffer control variables.
@@ -271,56 +373,96 @@ static void UARTBufRx( void )
     // Note: this must be performed after the condition which caused the 
     // interrupt (i.e. received data) is addressed.
     //
-    IFS0CLR = _IFS0_U1RXIF_MASK;
+    switch( mod_sel )
+    {
+        case UART_MODULE_1:
+        {
+            IFS0CLR = _IFS0_U1RXIF_MASK;
+            break;
+        }
+        case UART_MODULE_2:
+        {
+            IFS1CLR = _IFS1_U2RXIF_MASK;
+            break;
+        }
+        default:
+        {
+            Nop(); // Do nothing, invalid module number.
+        }
+    }
 }
 
-// Read data from hardware buffer into supplied buffer. 
-//
-// Note: It's assumed that higher-level integrity checks are included within
-// the serial data (e.g. checksum, CRC, etc.) for verifying content.  Low-level
-// communication failures (e.g. parity-bit failure) are internally recorded
-// to provide visibility during development.
-//
-// uint8_t* data_p - pointer to buffer for storing received data.
-//
-// uint8_t data_len - number of bytes available in data_p for storing received
-// data
-//
-// Note: the function will stored data within data_p until data_p is full.
-// When data_p is full, receiver hardware must still be read to service hardware
-// operation.  Read hardware data when data_p is full is lost.
-//
-static uint8_t UARTRead( uint8_t* data_p, uint16_t data_len )
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Read UART data.
+///
+/// @param  mod_sel
+///             Hardware module to read received data.
+/// @param  data_p
+///             Software buffer to store received data.
+/// @param  data_len
+///             Length of data to read (in bytes).
+///
+/// @return Number of bytes of read data.
+///
+/// @note   Higher-level integrity checks should be performed for the serial 
+///         data (e.g. checksum, CRC, etc.) for verifying content.  Low-level
+///         communication failures (e.g. parity-bit failure) are internally 
+///         recorded to provide visibility during development.
+///
+/// @note   The function will stored data within \p data_p until \p data_p is 
+///         full.  When \p data_p is full, receiver hardware must still be read 
+///         to service hardware operation.  Read hardware data when \p data_p is
+///         full is lost.
+///
+/// This function stored received UART data from hardware buffer to module data.
+////////////////////////////////////////////////////////////////////////////////
+static uint8_t UARTRead( UART_MODULE_E mod_sel, uint8_t* data_p, uint16_t data_len )
 {
+    typedef struct
+    {
+        volatile __U1STAbits_t* uart_sta_union_p;
+        volatile uint32_t*      uart_staclr_u32_p;
+        volatile uint32_t*      uart_rxreg_u32_p;
+        
+    } UART_READ_REG_S;
+    
+    // Note: __U1StAbits_t and __U2StAbits_t are identical bit fields.  Pointer
+    // typecast to allow common behavior of function.
+    static const UART_READ_REG_S uart_reg_p[ UART_MODULE_MAX ] =
+    {
+        {                 &U1STAbits, &U1STACLR, &U1RXREG },    // UART_MODULE_1
+        { (__U1STAbits_t*)&U2STAbits, &U2STACLR, &U2RXREG },    // UART_MODULE_2
+    };
+    
     uint8_t data_cnt = 0;
-    uint8_t rx_byte;
+    uint8_t rx_byte;    
     
     // Hardware buffer overflow has occurred ?
-    if( U1STAbits.OERR == 1 )
+    if( uart_reg_p[ mod_sel ].uart_sta_union_p->OERR == 1 )
     {
         // Latch identification of overflow error.
-        uart_oerr_latch = true;
+        uart_oerr_latch[ mod_sel ] = true;
         
         // Clear the hardware overflow hardware flag.
         //
         // Note: The overflow flag needs to be cleared because all UART
         // reception is inhibited while this hardware flag is set.
         //
-        U1STACLR = _U1STA_OERR_MASK;
+        *uart_reg_p[ mod_sel ].uart_staclr_u32_p = _U1STA_OERR_MASK;
     }
     
     // Read data from the hardware buffer until it is empty.
-    while( U1STAbits.URXDA == 1 )
+    while( uart_reg_p[ mod_sel ].uart_sta_union_p->URXDA == 1 )
     {
         // Parity or framing error with received byte ?
-        if( ( U1STAbits.PERR == 1 ) ||
-            ( U1STAbits.FERR == 1 ) )
+        if( ( uart_reg_p[ mod_sel ].uart_sta_union_p->PERR == 1 ) ||
+            ( uart_reg_p[ mod_sel ].uart_sta_union_p->FERR == 1 ) )
         {
-            uart_err_cnt++;
+            uart_err_cnt[ mod_sel ]++;
         }
         
         // Read byte from hardware buffer.
-        rx_byte = (uint8_t) U1RXREG;
+        rx_byte = (uint8_t) *uart_reg_p[ mod_sel ].uart_rxreg_u32_p;
         
         // Supplied buffer is valid and not full ?
         //
@@ -341,8 +483,11 @@ static uint8_t UARTRead( uint8_t* data_p, uint16_t data_len )
     return data_cnt;
 }
 
-// Service the transmitter interrupt.  Write next chunk of data to be
-// transmitted to the transmitter hardware buffer.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Transmit UART data.
+///
+/// This function manages transmitter hardware to transmit data.
+////////////////////////////////////////////////////////////////////////////////
 static void UARTBufTX( void )
 {
     UART_TX_BUF_S* tx_buf_elem;
@@ -398,7 +543,18 @@ static void UARTBufTX( void )
     IFS0CLR = _IFS0_U1TXIF_MASK;
 }
 
-// Write supplied data to the hardware transmit buffer.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Write UART data.
+///
+/// @param  data_p
+///             Software buffer of transmit data.
+/// @param  data_len
+///             Length of data to write (in bytes).
+///
+/// @return Number of bytes of transmitted data.
+///
+/// This function sets UART hardware with transmit data.
+////////////////////////////////////////////////////////////////////////////////
 static uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len )
 {
     uint8_t data_cnt = 0;

@@ -48,6 +48,23 @@ typedef struct {
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Queue an I2C transfer (read or write).
+///
+/// @param  xfer
+///             Pointer to control and communication data.
+///
+/// @return Identification of transfer queue success.
+///             -1 - \p xfer data is invalid.
+///             0  - I2C transfer already in progress.
+///             1  - Queue of I2C transfer successful.
+///
+/// This function queues I2C data for transfer.  The calling function must not
+/// modify data reference by \p xfer until the transfer is complete.  Transfer
+/// completion can be identified by the calling function by inspecting
+/// \p xfer->status.  A value of \e DONE or \e ERROR identifies transfer
+/// completion.
+////////////////////////////////////////////////////////////////////////////////
 int16_t I2CXfer( I2C_TRANSFER *xfer );
 
 #endif  // I2C_H_

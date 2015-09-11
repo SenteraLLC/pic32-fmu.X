@@ -1,13 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief Vector Navigation 100 (VN-100) driver.
+/// @brief Radio Control (RC) module.
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef VN100_H_
-#define	VN100_H_
+#ifndef RC_H_
+#define RC_H_
 
 // *****************************************************************************
 // ************************** System Include Files *****************************
+// *****************************************************************************
+
+// *****************************************************************************
+// ************************** User Include Files *******************************
 // *****************************************************************************
 
 #include <xc.h>
@@ -16,7 +20,7 @@
 #include <stdint.h>
 
 // *****************************************************************************
-// ************************** User Include Files *******************************
+// ************************** Macros *******************************************
 // *****************************************************************************
 
 // *****************************************************************************
@@ -32,11 +36,32 @@
 // *****************************************************************************
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @brief  VN100 periodic task.
+/// @brief  Perform the RC continuous task.
 ///
-/// This function manages tasks to initialize the VN100, read VN100 registers,
-/// and transmit the read VN100 data over Ethernet.
+/// This function calls module sub-functions to perform decoding of S.Bus
+/// data into channel specific values, and periodic transmission of RC data
+/// over Ethernet.
 ////////////////////////////////////////////////////////////////////////////////
-void VN100Task( void );
+void RCTask( void );
 
-#endif	// VN100_H_
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Get value of RC control.
+///
+/// @return Value of RC control variable. (true=RC,false=Normal)
+///
+/// This function returns the value of RC control being commanded.
+////////////////////////////////////////////////////////////////////////////////
+bool RCCtrlGet( void );
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Get commanded servo values.
+///
+/// @param  servo_val
+///             Buffer to store the commanded servo values.
+///
+/// This function copies the commanded servo values from module data into
+/// supplied buffer \p servo_val.
+////////////////////////////////////////////////////////////////////////////////
+void RCServoGet( uint16_t servo_val[ 10 ] );
+
+#endif // RC_H_

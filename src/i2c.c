@@ -107,7 +107,11 @@ int16_t I2CXfer(I2C_TRANSFER *xfer)
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
-// Timer 4 ISR
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  I2C bit-bang processing task.
+///
+/// The I2C data is bit-banged on the communication channel.
+////////////////////////////////////////////////////////////////////////////////
 void __ISR (_TIMER_4_VECTOR, IPL6SOFT) Timer4ISR(void)
 {
     static enum {

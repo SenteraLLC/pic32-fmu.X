@@ -366,11 +366,11 @@ void VN100Task( void )
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
-// Build the LAN/Ethernet data for transmission.
-//
-// Note: 'SyncIn' timers received from VN100 are in big-endian format while
-// all other fields are in little-endian format.
-//
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Build VN100 Ethernet data.
+///
+/// This function builds an \e IMU_DATA Ethernet packet for transmission.
+////////////////////////////////////////////////////////////////////////////////
 static void VN100LANBuildData( void )
 {
     vn100_lan_imu_data.fmuTime       = CoreTime64usGet();
@@ -454,26 +454,34 @@ static void VN100LANBuildData( void )
 
 //==============================================================================
 
-// Preform Request and Response communication transfer with the VN100.
-//
-// Calling function should set up elements:
-//  - arg
-//  - cmdID
-//  - reqPl
-//  - reqPlLen
-//  - respPlLen
-//  - respPl (pointer)
-//  - crcComp
-// This function will populate the following elements based upon the response
-// data received.
-//  - respPl (value if not NULL)
-//  - respStat
-//  - respCnt
-//  - commDone
-//
-// Additionally the function returns a Boolean flag to identify successful
-// execution of the transfer.
-//
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  VN100 communication transfer.
+///
+/// @param  pkt
+///             Control and communication data for the transfer.
+///
+/// @return Identification of communication transfer being completed.
+///             true  - transfer is complete.
+///             flase - transfer is in progress.
+///
+/// @note   Calling function should set up elements:
+///             - arg
+///             - cmdID
+///             - reqPl
+///             - reqPlLen
+///             - respPlLen
+///             - respPl (pointer)
+///             - crcComp
+///         This function will populate the following elements based upon the 
+///         response data received.
+///             - respPl (value if not NULL)
+///             - respStat
+///             - respCnt
+///             - commDone
+///
+/// This function preform a request and response communication transfer with 
+/// the VN100 to read and set peripheral registers.
+////////////////////////////////////////////////////////////////////////////////
 static bool VN100Comm( VN100_COMM_PKT* pkt )
 {
     static uint8_t vn100XferBuf[ VN100_XFER_BUF_SIZE ];

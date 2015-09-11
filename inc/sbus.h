@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// @file
-/// @brief Vector Navigation 100 (VN-100) driver.
+/// @brief S.Bus decode module.
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef VN100_H_
-#define	VN100_H_
+#ifndef SBUS_H_
+#define	SBUS_H_
 
 // *****************************************************************************
 // ************************** System Include Files *****************************
@@ -23,6 +23,30 @@
 // ************************** Defines ******************************************
 // *****************************************************************************
 
+/// Enumeration of the channels of decoded S.Bus data.
+typedef enum
+{
+    SBUS_CH1,
+    SBUS_CH2,
+    SBUS_CH3,
+    SBUS_CH4,
+    SBUS_CH5,
+    SBUS_CH6,
+    SBUS_CH7,
+    SBUS_CH8,
+    SBUS_CH9,
+    SBUS_CH10,
+    SBUS_CH11,
+    SBUS_CH12,
+    SBUS_CH13,
+    SBUS_CH14,
+    SBUS_CH15,
+    SBUS_CH16,
+    
+    SBUS_CH_MAX,
+            
+} SBUS_CH_E;
+
 // *****************************************************************************
 // ************************** Declarations *************************************
 // *****************************************************************************
@@ -32,11 +56,23 @@
 // *****************************************************************************
 
 ////////////////////////////////////////////////////////////////////////////////
-/// @brief  VN100 periodic task.
+/// @brief  Perform the S.Bus continuous task.
 ///
-/// This function manages tasks to initialize the VN100, read VN100 registers,
-/// and transmit the read VN100 data over Ethernet.
+/// The function performs the process of decoding S.Bus data into channel
+/// value.  Decoded S.Bus data is buffered to module data.
 ////////////////////////////////////////////////////////////////////////////////
-void VN100Task( void );
+void SBusTask( void );
 
-#endif	// VN100_H_
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Get a list of S.Bus data.
+///
+/// @param  ch_list
+///             Buffer to save channel data into.
+///
+/// This function copies the decoded S.Bus channel values from module data into
+/// the supplied buffer \p ch_list.
+////////////////////////////////////////////////////////////////////////////////
+void SBusListGet( uint16_t ch_list[ SBUS_CH_MAX ] );
+
+#endif	// ADC_H_
+

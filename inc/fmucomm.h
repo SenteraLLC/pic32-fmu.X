@@ -42,11 +42,12 @@ typedef enum
 {   
     FMUCOMM_TYPE_FMU_HEARTBEAT,     
     FMUCOMM_TYPE_IMU_DATA,          
-    FMUCOMM_TYPE_GPS_DATA,          
-    FMUCOMM_TYPE_AIR_DATA,          
+    FMUCOMM_TYPE_GPS_DATA,                  
     FMUCOMM_TYPE_CTRL_SURFACE_DATA, 
     FMUCOMM_TYPE_RC_DATA,       
-    FMUCOMM_TYPE_FMU_EXCEPTION,     
+    FMUCOMM_TYPE_FMU_EXCEPTION,   
+            
+    FMUCOMM_TX_TYPE_MAX,
             
 } FMUCOMM_TX_TYPE_E;
 

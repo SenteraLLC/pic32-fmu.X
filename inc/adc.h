@@ -31,10 +31,22 @@
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-// Read ADC input(s).
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Read ADC input(s).
+///
+/// This function reads ADC inputs from the hardware and buffers their value
+/// to module data.
+////////////////////////////////////////////////////////////////////////////////
 void ADCTask( void );
 
-// Return the Power Supply ADC value.
+// 
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Return the Power Supply value.
+///
+/// @return Power Supply value.
+///
+/// The buffer Power Supply value in module data is returned.
+////////////////////////////////////////////////////////////////////////////////
 uint16_t ADCVbattGet( void );
 
 #endif	// ADC_H_

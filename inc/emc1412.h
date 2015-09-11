@@ -31,14 +31,31 @@
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-// Perform the EMC1412 Task - the internal and external temperature sensor
-// value are read into module data.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Perform EMC1412 processing task.
+///
+/// Communication with the EMC1412 peripheral is performed to initialize the
+/// device, configure the device, and read temperature values.  Read 
+/// temperature values are buffered to module data.
+////////////////////////////////////////////////////////////////////////////////
 void EMC1412Task( void );
 
-// The internal temperature sensor value (LSB = 0.01 C).
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Return the EMC1412 internal temperature.
+///
+/// @return EMC1412 internal temperature (LSB = 0.01 C).
+///
+/// The internal temperature value is returned from module data.
+////////////////////////////////////////////////////////////////////////////////
 int16_t EMC1412IntTempGet();
 
-// The external temperature sensor value (LSB = 0.01 C).
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Return the EMC1412 external temperature.
+///
+/// @return EMC1412 external temperature (LSB = 0.01 C).
+///
+/// The external temperature value is returned from module data.
+////////////////////////////////////////////////////////////////////////////////
 int16_t EMC1412ExtTempGet();
 
 #endif	// EMC1412_H_

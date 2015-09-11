@@ -248,7 +248,7 @@ void CANInit( void );
 ///             Payload of message to transmit.
 ///
 /// @note   When not applicable, the calling application should set
-///         parameter dest_id to zero.
+///         \p dest_id to zero.
 ////////////////////////////////////////////////////////////////////////////////
 void CANTxSet( CAN_TX_MSG_TYPE_E tx_msg_type, 
                uint8_t dest_id, 
@@ -264,8 +264,8 @@ void CANTxSet( CAN_TX_MSG_TYPE_E tx_msg_type,
 /// @param  payload
 ///             Buffer for storing the received message's payload.
 ///
-/// @note   Parameter 'src_id_p' can be set to NULL when the Source ID is 
-///         not applicable or not needed.
+/// @note   \p src_id_p can be set to NULL when the Source ID is not applicable
+///         or not needed.
 ///
 /// @return true  - returned data is value.  
 ///         false - returned data is invalid.

@@ -375,6 +375,25 @@ bool CANRxGet ( CAN_RX_MSG_TYPE_E rx_msg_type, uint8_t* src_id_p, uint32_t paylo
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Build CAN header for a message.
+///
+/// @param  tx_msg_type
+///             Type of CAN message for building the header.
+/// @param  dest_id
+///             Destination ID of CAN message - N/A for broadcast messages and
+///             should be set to zero.
+/// @param  msg_buf
+///             Buffer to store the message.
+///
+/// @note   The header field is stored within \p msg_buf at indeces [0:1].
+///         The \p msg_buf must contain its data within indeces [2:3] before
+///         this function is executed, as some header content is based on
+///         payload content.
+///
+/// This function builds CAN header message content based on the type of 
+/// message (i.e. \p tx_msg_type) being transmitted.
+////////////////////////////////////////////////////////////////////////////////
 static void CANTxBuildHeader ( CAN_TX_MSG_TYPE_E tx_msg_type, 
                                uint8_t dest_id, 
                                uint32_t msg_buf[ 4 ] )

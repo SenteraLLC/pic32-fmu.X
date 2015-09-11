@@ -1,10 +1,21 @@
-/*******************************************************************************
-/
-/   Filename:   pic32fmu.c
-/
-*******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+/// @file
+/// @brief PIC32 FMU Executive.
+////////////////////////////////////////////////////////////////////////////////
+
+// *****************************************************************************
+// ************************** System Include Files *****************************
+// *****************************************************************************
 
 #include <xc.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+// *****************************************************************************
+// ************************** User Include Files *******************************
+// *****************************************************************************
+
 #include "spi.h"
 #include "stdtypes.h"
 #include "coretime.h"
@@ -20,16 +31,36 @@
 #include "ksz8895.h"
 #include "sbus.h"
 #include "rc.h"
-
-// Include all headers for any enabled TCPIP Stack functions
 #include "tcpip/tcpip.h"
+
+// *****************************************************************************
+// ************************** Macros *******************************************
+// *****************************************************************************
+
+// *****************************************************************************
+// ************************** Defines ******************************************
+// *****************************************************************************
+
+// *****************************************************************************
+// ************************** Definitions **************************************
+// *****************************************************************************
 
 // Declare AppConfig structure and some other supporting stack variables
 APP_CONFIG AppConfig;
 
+// *****************************************************************************
+// ************************** Function Prototypes ******************************
+// *****************************************************************************
 
-//==============================================================================
+// *****************************************************************************
+// ************************** Global Functions *********************************
+// *****************************************************************************
 
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  C-Environment control flow entry point.
+///
+/// The function manages processing for the C embedded environment.
+////////////////////////////////////////////////////////////////////////////////
 int main()
 {
     InitBoard();            // Initialize FMU processor and peripherals.
@@ -43,25 +74,22 @@ int main()
     {
         WDTCONSET = _WDTCON_WDTCLR_MASK;        // Clear watchdog timer.
 
-        // Low-level communication tasks. ---------------------------
-        ADCTask();
-        SPITask();
-        UARTTask();  // NOTE: Task must occur before any function in software cycle which used received UART data.
+        // Low-level communication tasks. --------------------------------------
+        ADCTask();      // Read ATD input(s).
+        SPITask();      // Manage completion of SPI transfer.
+        UARTTask();     // Manage UART Rx buffers.
+
+        FMUCommTask();  // Read Ethernet packets.
         
-        // This task reads UDP data for processing; therefore this task
-        // must be executed in the software cycle before any function
-        // which gets UDP data.
-        FMUCommTask();
+        // High-Level communication tasks. -------------------------------------
+        VN100Task();    // Read VN100 data and queue Ethernet packet for transfer.
+        OEMStarTask();  // Forward data between OEMStar<->Host.
+        EMC1412Task();  // Read temperature sensor data.
+        SBusTask();     // Read SBUS data.
+        RCTask();       // Packetize SBUS data for Ethernet transfer and decode SBUS data.
         
-        // Acquire sensor data. -------------------------------------
-        VN100Task();
-        OEMStarTask();
-        EMC1412Task();
-        SBusTask();
-        RCTask();
-        
-        StatusTask();
-        SNodeTask();
+        StatusTask();   // Annunciate FMU status.
+        SNodeTask();    // Manage communication with the Servo-Node network.
         
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling
@@ -75,3 +103,6 @@ int main()
     return 0;
 }
 
+// *****************************************************************************
+// ************************** Static Functions *********************************
+// *****************************************************************************

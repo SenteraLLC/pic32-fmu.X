@@ -7,12 +7,13 @@
 // ************************** System Include Files *****************************
 // *****************************************************************************
 
+#include <sys/attribs.h>
+
 // *****************************************************************************
 // ************************** User Include Files *******************************
 // *****************************************************************************
 
 #include "uart.h"
-#include <sys/attribs.h>
 
 // *****************************************************************************
 // ************************** Defines ******************************************
@@ -289,33 +290,67 @@ bool UARTSet( UART_TX_BUF_S* tx_buf_p )
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Hardware buffer availability SPI1 interrupt.
+///
+/// This function empties the received hardware buffer and fills the hardware
+/// transmit buffer to keep 100% utilization of the UART interface when
+/// transferring data.
+////////////////////////////////////////////////////////////////////////////////
 void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void ) 
 {
     // Receiver caused interrupt ?
-    if( IFS0bits.U1RXIF == 1 )
+    //
+    // Note: Since multiple interrupts can trigger the ISR, both the enabling
+    // of the interrupt source, and the status flag must be checked.  That is,
+    // it is possible for the status flag to be set (Rx contains data) but the
+    // receiver interrupt to be disabled.
+    //
+    if( ( IEC0bits.U1RXIE == 1 ) &&
+        ( IFS0bits.U1RXIF == 1 ) )
     {
         // Service the receiver.
         UARTBufRx( UART_MODULE_1 );
     }
     
     // Transmitter caused interrupt ?
-    if( IFS0bits.U1TXIF == 1 )
+    //
+    // Note: Since multiple interrupts can trigger the ISR, both the enabling
+    // of the interrupt source, and the status flag must be checked.  That is,
+    // it is possible for the status flag to be set (Tx is empty) but the
+    // transmitter interrupt to be disabled.
+    //
+    if( ( IEC0bits.U1TXIE == 1 ) &&
+        ( IFS0bits.U1TXIF == 1 ) )
     {
         // Service the transmitter.
         UARTBufTX();
     }
 }
 
-// Note: only receiver is enabled for UART2, so if interrupt occurs it must
-// be b/c of the receiver.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Hardware buffer availability SPI2 interrupt.
+///
+/// @note   Only receiver is enabled for UART2, so if interrupt occurs it must
+/// be b/c of the receiver.
+///
+/// This function empties the received hardware buffer to keep 100% utilization 
+/// of the UART interface when receiving data.
+////////////////////////////////////////////////////////////////////////////////
 void __ISR ( _UART_2_VECTOR, IPL1SOFT) UART2ISR( void ) 
 {
     // Service the receiver.
     UARTBufRx( UART_MODULE_2 );
 }
 
-// Service the receiver interrupt.  The receiver hardware buffer content is
-// copied into module data.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Buffer received UART data.
+///
+/// @param  mod_sel
+///             The hardware module to read received data.
+///
+/// This function manages received hardware to receive data.
+////////////////////////////////////////////////////////////////////////////////
 static void UARTBufRx( UART_MODULE_E mod_sel )
 { 
     UART_RX_BUF_S* rx_buf_elem;
@@ -357,22 +392,30 @@ static void UARTBufRx( UART_MODULE_E mod_sel )
     }
 }
 
-// Read data from hardware buffer into supplied buffer. 
-//
-// Note: It's assumed that higher-level integrity checks are included within
-// the serial data (e.g. checksum, CRC, etc.) for verifying content.  Low-level
-// communication failures (e.g. parity-bit failure) are internally recorded
-// to provide visibility during development.
-//
-// uint8_t* data_p - pointer to buffer for storing received data.
-//
-// uint8_t data_len - number of bytes available in data_p for storing received
-// data
-//
-// Note: the function will stored data within data_p until data_p is full.
-// When data_p is full, receiver hardware must still be read to service hardware
-// operation.  Read hardware data when data_p is full is lost.
-//
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Read UART data.
+///
+/// @param  mod_sel
+///             Hardware module to read received data.
+/// @param  data_p
+///             Software buffer to store received data.
+/// @param  data_len
+///             Length of data to read (in bytes).
+///
+/// @return Number of bytes of read data.
+///
+/// @note   Higher-level integrity checks should be performed for the serial 
+///         data (e.g. checksum, CRC, etc.) for verifying content.  Low-level
+///         communication failures (e.g. parity-bit failure) are internally 
+///         recorded to provide visibility during development.
+///
+/// @note   The function will stored data within \p data_p until \p data_p is 
+///         full.  When \p data_p is full, receiver hardware must still be read 
+///         to service hardware operation.  Read hardware data when \p data_p is
+///         full is lost.
+///
+/// This function stored received UART data from hardware buffer to module data.
+////////////////////////////////////////////////////////////////////////////////
 static uint8_t UARTRead( UART_MODULE_E mod_sel, uint8_t* data_p, uint16_t data_len )
 {
     typedef struct
@@ -440,8 +483,11 @@ static uint8_t UARTRead( UART_MODULE_E mod_sel, uint8_t* data_p, uint16_t data_l
     return data_cnt;
 }
 
-// Service the transmitter interrupt.  Write next chunk of data to be
-// transmitted to the transmitter hardware buffer.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Transmit UART data.
+///
+/// This function manages transmitter hardware to transmit data.
+////////////////////////////////////////////////////////////////////////////////
 static void UARTBufTX( void )
 {
     UART_TX_BUF_S* tx_buf_elem;
@@ -497,7 +543,18 @@ static void UARTBufTX( void )
     IFS0CLR = _IFS0_U1TXIF_MASK;
 }
 
-// Write supplied data to the hardware transmit buffer.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Write UART data.
+///
+/// @param  data_p
+///             Software buffer of transmit data.
+/// @param  data_len
+///             Length of data to write (in bytes).
+///
+/// @return Number of bytes of transmitted data.
+///
+/// This function sets UART hardware with transmit data.
+////////////////////////////////////////////////////////////////////////////////
 static uint8_t UARTWrite( const uint8_t* data_p, uint16_t data_len )
 {
     uint8_t data_cnt = 0;

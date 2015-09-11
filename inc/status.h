@@ -31,8 +31,12 @@
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-// Perform the status task - Heartbeat information is transmitted over Ethernet
-// and a heartbeat LED is toggled.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Perform the status task.
+///
+/// Heartbeat and Version information is annunciated to identify software
+/// state.
+////////////////////////////////////////////////////////////////////////////////
 void StatusTask( void );
 
 #endif	// STATUS_H_

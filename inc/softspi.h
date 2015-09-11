@@ -1,17 +1,27 @@
-/*******************************************************************************
-/
-/   Filename:   softspi.h
-/
-*******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+/// @file
+/// @brief Soft Serial Peripheral Interface (SPI) driver.
+////////////////////////////////////////////////////////////////////////////////
 
 #ifndef SOFTSPI_H_
 #define SOFTSPI_H_
 
+// *****************************************************************************
+// ************************** System Include Files *****************************
+// *****************************************************************************
 
-#include <inttypes.h>
+#include <xc.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
+// *****************************************************************************
+// ************************** User Include Files *******************************
+// *****************************************************************************
 
-// Data Types -----------------------------------------------------------------
+// *****************************************************************************
+// ************************** Defines ******************************************
+// *****************************************************************************
 
 typedef enum {
     SOFTSPI_KSZ8895 = 0,
@@ -26,9 +36,6 @@ typedef volatile struct {
     int xferDone;       // 0 when transfer is initiated, 1 when complete.
 } SOFTSPI_TRANSFER;
 
-
-// Software SPI Macros --------------------------------------------------------
-
 #define mGetSpiMiso()               (PORTBbits.RB10)                // Read MISO.
 
 #define mSetSpiMosiHigh()           (LATBSET = _LATB_LATB9_MASK)    // Drive MOSI high.
@@ -40,10 +47,27 @@ typedef volatile struct {
 #define mSetSpiSsHigh_KSZ8895()     (LATBSET = _LATB_LATB7_MASK)    // Drive SS high.
 #define mSetSpiSsLow_KSZ8895()      (LATBCLR = _LATB_LATB7_MASK)    // Drive SS low.
 
+// *****************************************************************************
+// ************************** Declarations *************************************
+// *****************************************************************************
 
-// Function Prototypes --------------------------------------------------------
+// *****************************************************************************
+// ************************** Function Prototypes ******************************
+// *****************************************************************************
 
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Queue SPI data for transfer.
+///
+/// @param  xfer
+///             Buffer of control and communication data for transfer.
+///
+/// @return Identification of queuing of SPI data as successful.
+///             -1 - Unsuccessful.
+///             0  - Success.
+///
+/// This function queues SPI data for transfer.  Transfer is identifies as
+/// \e soft as SPI communication is implemented as bit-banged design.
+////////////////////////////////////////////////////////////////////////////////
 int SoftSPIXfer(SOFTSPI_TRANSFER *xfer);
-
 
 #endif  // SOFTSPI_H_

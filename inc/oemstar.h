@@ -31,8 +31,11 @@
 // ************************** Function Prototypes ******************************
 // *****************************************************************************
 
-// Service the OEMStar module; messages are forwarded between the HOST and
-// GPS receiver.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Service the OEMStar module.
+///
+/// This function forwards messages between the Host and GPS receiver.
+////////////////////////////////////////////////////////////////////////////////
 void OEMStarTask( void );
 
 #endif	// OEMSTAR_H_

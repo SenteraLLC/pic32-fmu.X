@@ -138,7 +138,6 @@ void SNodeTask( void )
     SNodeCalReadTask();
 }
 
-// Setup for a Servo-Node calibration writing process.
 void SNodeCalWriteSet( uint8_t node_id, SNODE_CFG_VAL* cfg_val_p )
 {
     snode_write_cal_data.status  = SNODE_CAL_WRITE_IN_PROG;
@@ -147,7 +146,6 @@ void SNodeCalWriteSet( uint8_t node_id, SNODE_CFG_VAL* cfg_val_p )
     snode_write_cal_data.cfg_val = *cfg_val_p;
 }
 
-// Setup for a Servo-Node calibration reading process.
 void SNodeCalReadSet( uint8_t node_id )
 {
     snode_read_cal_data.status  = SNODE_CAL_READ_IN_PROG;
@@ -155,7 +153,6 @@ void SNodeCalReadSet( uint8_t node_id )
     snode_read_cal_data.cfg_sel = 1;
 }
 
-// Setup for a Servo-Node ID writing process.
 void SNodeIDWriteSet( uint8_t node_id_cur, uint8_t node_id_new )
 {
     snode_write_id_data.status = SNODE_ID_WRITE_IN_PROG;
@@ -163,7 +160,6 @@ void SNodeIDWriteSet( uint8_t node_id_cur, uint8_t node_id_new )
     snode_write_id_data.newID  = node_id_new;
 }
 
-// Get the results of the Servo-Node ID writing process.
 SNODE_ID_WRITE_STATUS SNodeIDWriteStatusGet( void )
 {
     return snode_write_id_data.status;
@@ -181,10 +177,6 @@ SNODE_CAL_READ_STATUS SNodeCalReadStatusGet( void )
     return snode_read_cal_data.status;
 }
 
-// construct the string directly for returning received data.
-// NOTE: calibration read values are packed as comma
-// delimited string.
-//
 void SNodeCalReadStrGet( char* str_in )
 {
     uint8_t coeff_idx;
@@ -243,10 +235,6 @@ void SNodeCalReadStrGet( char* str_in )
     }
 }
 
-// construct the string directly for returning received data.
-// NOTE: calibration read values are packed as comma
-// delimited string.
-//
 void SNodeRxDataStrGet( char* str_in )
 {
     uint8_t surface_idx = 0;
@@ -379,7 +367,7 @@ static void SNodeCtrlDataTask( void )
             // be constructed for the transmission.
             tx_msg_ready = false;
             
-            // Evaluate age of received CAN data for each Servo-Node. Old/stall
+            // Evaluate age of received CAN data for each Servo-Node. Old/stale
             // servo nodes are to be invalidated.
             SNodeCANTimeout();
             
@@ -428,17 +416,25 @@ static void SNodeCtrlDataTask( void )
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief  Servo-node control command task.
 ///
-/// This function manages forwarding of Control Surface Commands to the 
+/// This function manages forwarding of Servo Commands to the 
 /// Servo-node CAN network.
 ////////////////////////////////////////////////////////////////////////////////
 static void SNodeCtrlCmdTask( void )
 {
+    typedef struct
+    {
+        uint8_t            id;
+        CAN_TX_SERVO_CMD_U cmd;
+                
+    } CAN_MSG_S;
+    
+    static uint32_t  prev_tx_time = 0;;
+    static CAN_MSG_S can_msg[ 10 ];
+    static uint8_t   snodes_max = 0;
+    
     const FMUCOMM_RX_PKT*              eth_ctrl_cmd_p;
     const FMUCOMM_CTRL_SURFACE_CMD_PL* eth_ctrl_cmd_pl_p;
     
-    CAN_TX_SERVO_CMD_U can_ctrl_cmd;
-    
-    uint8_t snodes_max;
     uint8_t snodes_idx;
     
     bool rc_ctrl;
@@ -457,14 +453,10 @@ static void SNodeCtrlCmdTask( void )
         {
             // Construct the CAN message to send with the received RC
             // data.
-            can_ctrl_cmd.cmd_type = 0; // PWM control
-            can_ctrl_cmd.cmd_pwm  = rc_servo_val[ snodes_idx ];
-            can_ctrl_cmd.cmd_pos  = 0; // N/A
-
-            // Forward the command to the Servo-node.
-            CANTxSet( CAN_TX_MSG_SERVO_CMD, 
-                      snodes_idx + 2,
-                      &can_ctrl_cmd.data_u32[ 0 ] );
+            can_msg[snodes_idx].id           = snodes_idx + 2;             // Node ID, servos start at CH2
+            can_msg[snodes_idx].cmd.cmd_type = 0;                          // PWM control
+            can_msg[snodes_idx].cmd.cmd_pwm  = rc_servo_val[ snodes_idx ]; // PWM value
+            can_msg[snodes_idx].cmd.cmd_pos  = 0;                          // N/A, b/c PWM control
         }
     }
     else // Host commanded control is to be performed.
@@ -487,15 +479,41 @@ static void SNodeCtrlCmdTask( void )
             {
                 // Construct the CAN message to send with the received Ethernet
                 // data.
-                can_ctrl_cmd.cmd_type = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdType;
-                can_ctrl_cmd.cmd_pwm  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPwm;
-                can_ctrl_cmd.cmd_pos  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPos;
-
-                // Forward the command to the Servo-node.
-                CANTxSet( CAN_TX_MSG_SERVO_CMD, 
-                          eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].surfaceID,
-                          &can_ctrl_cmd.data_u32[ 0 ] );
+                can_msg[snodes_idx].id           = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].surfaceID;
+                can_msg[snodes_idx].cmd.cmd_type = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdType;
+                can_msg[snodes_idx].cmd.cmd_pwm  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPwm;
+                can_msg[snodes_idx].cmd.cmd_pos  = eth_ctrl_cmd_pl_p->ctrlSurface[ snodes_idx ].cmdPos;
             }
+        }
+    }
+    
+    // Required time has elapsed since last Control Command transmission ?
+    if( CoreTime32usGet() - prev_tx_time > 10000 )
+    {
+        // Increment tx-time by fixed transmission period time to eliminate
+        // drift.
+        prev_tx_time += 10000;
+        
+        // Transmission period is still already elapsed ?
+        //
+        // Note: This could occur if processing inhibited this function's 
+        // execution for an extended amount of time.
+        //
+        if( CoreTime32usGet() - prev_tx_time > 10000 )
+        {
+            // Update tx-time to the current time.  Single or multiple
+            // periods have elapsed.  Setting tx-time to the current time
+            // prevents repeated identifications of the period having elapsed.
+            prev_tx_time = CoreTime32usGet();
+        }
+        
+        // Loop through each node's information.
+        for( snodes_idx = 0; snodes_idx < snodes_max; snodes_idx++ )
+        {
+            // Forward the command to the Servo-node.
+            CANTxSet( CAN_TX_MSG_SERVO_CMD, 
+                      can_msg[snodes_idx].id,
+                      &can_msg[snodes_idx].cmd.data_u32[ 0 ] );
         }
     }
 }

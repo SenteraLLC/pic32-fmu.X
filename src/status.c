@@ -90,7 +90,11 @@ void StatusTask( void )
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
-// Blink the heartbeat LED at a 0.5Hz rate.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Status LED Task.
+///
+/// This periodic function blinks the heartbeat LED at a 0.5Hz rate.
+////////////////////////////////////////////////////////////////////////////////
 static void StatusLEDTask( void )
 {
     static uint32_t prevBlinkTime = 0;
@@ -108,7 +112,11 @@ static void StatusLEDTask( void )
     return;
 }
 
-// Transmit the FMU Heartbeat packet at a 1Hz rate.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  FMU Heartbeat Status Task.
+///
+/// The function sends the FMU Heartbeat Ethernet packet as a 1Hz rate.
+////////////////////////////////////////////////////////////////////////////////
 static void StatusFMUHbTask( void )
 {
     static enum 
@@ -193,12 +201,19 @@ static void StatusFMUHbTask( void )
 }
 
 // Periodically send the Node Status and Node Version CAN messages.
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  FMU Node Status Task.
+///
+/// This function sends the FMU Node CAN messages (Node Status & Node Version)
+/// at a 2Hz rate.
+////////////////////////////////////////////////////////////////////////////////
 static void StatusFMUNodeTask( void )
 {
     static uint32_t prevExeTime = 0;
     
-    CAN_TX_NODE_STATUS_U node_status_msg;
-    CAN_TX_NODE_VER_U    node_ver_msg;
+    static CAN_TX_NODE_STATUS_U node_status_msg = { { 0 } };
+           CAN_TX_NODE_VER_U    node_ver_msg;
     
     // Required time has elapsed ?
     if( CoreTime32usGet() - prevExeTime > 500000 )
@@ -223,35 +238,46 @@ static void StatusFMUNodeTask( void )
         
         // NODE STATUS MESSAGE -------------------------------------------------
         
-        // Build the message.
+        // Reset detail not yet set ?
         //
-        // Note: RCON register truncated to 16-bits since upper 16-bits is all
-        // spares.
-        node_status_msg.reset_detail = (uint16_t) RCON;
-        
-        if( RCONbits.POR )
+        // Note: the status message is built once following reset since it is
+        // a static message and reset register bits need to be cleared to
+        // identify the next reset condition.  reset_detail is checked to be 
+        // zero to detect the first execution after reset as the hardware
+        // register stored to this variable is always non-zero.
+        //
+        if( node_status_msg.reset_detail == 0 )
         {
-            node_status_msg.reset_condition = 1;
+            // Build the message.
+            //
+            // Note: RCON register truncated to 16-bits since upper 16-bits is all
+            // spares.
+            node_status_msg.reset_detail = (uint16_t) RCON;
+
+            if( RCONbits.POR )
+            {
+                node_status_msg.reset_condition = 1;
+            }
+            else
+            if( RCONbits.BOR )
+            {
+                node_status_msg.reset_condition = 2;
+            }
+            else
+            if( RCONbits.SWR )
+            {
+                node_status_msg.reset_condition = 3;
+            }
+            else
+            {
+                node_status_msg.reset_condition = 4;
+            }
+
+            // Reset the RCON register BOR and POR bits so that the reset condition
+            // can be detected on the next reset.
+            RCONCLR = _RCON_BOR_MASK;
+            RCONCLR = _RCON_POR_MASK;
         }
-        else
-        if( RCONbits.BOR )
-        {
-            node_status_msg.reset_condition = 2;
-        }
-        else
-        if( RCONbits.SWR )
-        {
-            node_status_msg.reset_condition = 3;
-        }
-        else
-        {
-            node_status_msg.reset_condition = 4;
-        }
-        
-        // Reset the RCON register BOR and POR bits so that the reset condition
-        // can be detected on the next reset.
-        RCONCLR = _RCON_BOR_MASK;
-        RCONCLR = _RCON_POR_MASK;
         
         // Queue message for transmission.
         //
@@ -284,6 +310,13 @@ static void StatusFMUNodeTask( void )
 }
 
 // Read the Host heartbeat message into module data.
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Host Heartbeat Status Task.
+///
+/// This function buffers a received Host Heartbeat Ethernet message into
+/// module data.
+////////////////////////////////////////////////////////////////////////////////
 static void StatusHostHbTask( void )
 {
     const FMUCOMM_RX_PKT*            host_hb_pkt;

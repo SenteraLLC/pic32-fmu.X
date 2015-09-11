@@ -27,7 +27,7 @@
 /// SBUS threshold value for detection of the RC-switch being active.
 ///
 /// @note For a 3-state switch, S.Bus values for different states are:
-///       (INACTIVE=172, MID=922, ACTIVE=1811).  A value between the MID and 
+///       (INACTIVE=172, MID=992, ACTIVE=1811).  A value between the MID and 
 ///       ACTIVE points is selected for the comparison.
 ///
 #define RC_SBUS_SWITCH_ACT 1500

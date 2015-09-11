@@ -1,20 +1,84 @@
-/*******************************************************************************
-/
-/   Filename:   init.c
-/
-*******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+/// @file
+/// @brief Initialization.
+////////////////////////////////////////////////////////////////////////////////
 
-#include <xc.h>
+// *****************************************************************************
+// ************************** System Include Files *****************************
+// *****************************************************************************
+
 #include <sys/attribs.h>
+
+// *****************************************************************************
+// ************************** User Include Files *******************************
+// *****************************************************************************
+
 #include "tcpip/tcpip.h"
 #include "ksz8895.h"
 #include "init.h"
 #include "can.h"
 #include "uart.h"
 
-//==============================================================================
+// *****************************************************************************
+// ************************** Macros *******************************************
+// *****************************************************************************
 
-static void InitCPU()
+// *****************************************************************************
+// ************************** Defines ******************************************
+// *****************************************************************************
+
+// *****************************************************************************
+// ************************** Definitions **************************************
+// *****************************************************************************
+
+// *****************************************************************************
+// ************************** Function Prototypes ******************************
+// *****************************************************************************
+
+static void InitCPU( void );
+static void InitGPIO( void );
+static void InitTMR( void );
+static void InitSPI( void );
+static void InitI2C( void );
+static void InitINT( void );
+static void InitWDT( void );
+static void InitTCPIPStack( void );
+static void InitADC( void );
+
+// *****************************************************************************
+// ************************** Global Functions *********************************
+// *****************************************************************************
+
+void InitBoard()
+{
+    // Initialize microcontroller peripherals.
+    InitCPU();
+    InitGPIO();
+    InitTMR();
+    InitSPI();
+    InitINT();
+    UARTInit();
+    CANInit();
+    InitADC();
+    InitI2C();
+
+    // Initialize software libraries.
+    InitTCPIPStack();
+    
+    // Initialize watchdog timer.
+    InitWDT();
+}
+
+// *****************************************************************************
+// ************************** Static Functions *********************************
+// *****************************************************************************
+
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize internal CPU operation.
+///
+/// This function initialize internal CPU operation.
+////////////////////////////////////////////////////////////////////////////////
+static void InitCPU( void )
 {
     switch (DEVIDbits.VER)
     {
@@ -35,9 +99,13 @@ static void InitCPU()
     }
 }
 
-//==============================================================================
-
-static void InitGPIO()
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize General-Purpose Input/Output (GPIO) operation.
+///
+/// The function configures GPIO for correct electrical operation and 
+/// default/initial value.
+////////////////////////////////////////////////////////////////////////////////
+static void InitGPIO( void )
 {
     // Disable JTAG port.
     DDPCONbits.JTAGEN = 0;
@@ -92,9 +160,13 @@ static void InitGPIO()
     LATCCLR  = _LATC_LATC15_MASK;       // Set the output low (0).
 }
 
-//==============================================================================
-
-static void InitTMR()
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize timer operation.
+///
+/// This function initializes timers used for tracking core time and those
+/// for bit-banging interfaces.
+////////////////////////////////////////////////////////////////////////////////
+static void InitTMR( void )
 {
     // Core Timer
     IPC0bits.CTIP = 7;              // Set core timer interrupt priority.
@@ -111,9 +183,12 @@ static void InitTMR()
     OpenTimer5(T5_ON | T5_IDLE_CON | T5_PS_1_1, 800);       // 100 kHz
 }
 
-//==============================================================================
-
-static void InitSPI()
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize SPI operation.
+///
+/// Hardware registers are initialized for required operation.
+////////////////////////////////////////////////////////////////////////////////
+static void InitSPI( void )
 {
     // SPI2
 
@@ -145,7 +220,12 @@ static void InitSPI()
     SPI2CONSET = _SPI2CON_ON_MASK;      // Enable SPI peripheral.
 }
 
-static void InitI2C(void)
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize I2C operation.
+///
+/// Hardware registers are initialized for required operation.
+////////////////////////////////////////////////////////////////////////////////
+static void InitI2C( void )
 {
     // RB3 = SMBCLK
     AD1PCFGbits.PCFG3 = 1;  // Analog input pin in digital mode.
@@ -162,16 +242,22 @@ static void InitI2C(void)
     return;
 }
 
-//==============================================================================
-
-static void InitINT()
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize interrupt operation.
+///
+/// Hardware registers are initialized for required operation.
+////////////////////////////////////////////////////////////////////////////////
+static void InitINT( void )
 {
     INTCONSET = _INTCON_MVEC_MASK;      // Enable multi-vectored mode.
 }
 
-//==============================================================================
-
-static void InitWDT()
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize Watchdog Timer (WDT) operation.
+///
+/// Hardware registers are initialized for required operation.
+////////////////////////////////////////////////////////////////////////////////
+static void InitWDT( void )
 {
     if ((RCONbits.POR == 1) && (RCONbits.BOR == 1))
     {
@@ -184,9 +270,12 @@ static void InitWDT()
     }
 }
 
-//==============================================================================
-
-static void InitTCPIPStack()
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize the TCPIP stack.
+///
+/// Hardware registers and software are initialized for required operation.
+////////////////////////////////////////////////////////////////////////////////
+static void InitTCPIPStack( void )
 {
     static ROM uint8_t SerializedMACAddress[6] = 
             {MY_DEFAULT_MAC_BYTE1, MY_DEFAULT_MAC_BYTE2, 
@@ -251,9 +340,12 @@ static void InitTCPIPStack()
     return;
 }
 
-//==============================================================================
-
-static void InitADC(void)
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Initialize the ADC operation.
+///
+/// Hardware registers are initialized for required operation.
+////////////////////////////////////////////////////////////////////////////////
+static void InitADC( void )
 {
     // Configure the 10-bit Analog to Digital converter.
     //      AN5 = Battery Voltage
@@ -300,26 +392,3 @@ static void InitADC(void)
 
     return;
 }
-
-//==============================================================================
-
-void InitBoard()
-{
-    // Initialize microcontroller peripherals.
-    InitCPU();
-    InitGPIO();
-    InitTMR();
-    InitSPI();
-    InitINT();
-    UARTInit();
-    CANInit();
-    InitADC();
-    InitI2C();
-
-    // Initialize software libraries.
-    InitTCPIPStack();
-    
-    // Initialize watchdog timer.
-    InitWDT();
-}
-

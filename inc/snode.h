@@ -76,6 +76,20 @@ typedef struct
 void SNodeTask( void );
 
 ////////////////////////////////////////////////////////////////////////////////
+/// @brief  Set Intrusive Control Mode(ICM).
+///
+/// @param  icm
+///             Status of intrusive contorl:
+///                 true  - intrusive control is enabled.
+///                 false - intrusive control is disabled.
+///
+/// This function enabled/disables intrusive control.  During intrusive control, 
+/// the normal operation of sending Control Surface Command messages is 
+/// inhibited.
+////////////////////////////////////////////////////////////////////////////////
+void SNodeICMSet( bool icm );
+
+////////////////////////////////////////////////////////////////////////////////
 /// @brief  Set Servo-Node calibration write.
 ///
 /// @param  node_id

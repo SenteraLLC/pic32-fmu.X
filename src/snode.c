@@ -92,20 +92,25 @@ typedef struct
 static SNODE_RX_DATA  snode_rx_data_buf[ SNODE_RX_BUF_SIZE ];
 static SNODE_RX_DATA* snode_rx_data_id_p[ 128 ] = { 0 };
 
-SNODE_WRITE_ID_DATA snode_write_id_data = 
+static SNODE_WRITE_ID_DATA snode_write_id_data = 
 {
     .status = SNODE_ID_WRITE_SUCCESS,
 };
 
-SNODE_WRITE_CAL_DATA snode_write_cal_data = 
+static SNODE_WRITE_CAL_DATA snode_write_cal_data = 
 {
     .status = SNODE_CAL_WRITE_SUCCESS,
 };
 
-SNODE_READ_CAL_DATA snode_read_cal_data = 
+static SNODE_READ_CAL_DATA snode_read_cal_data = 
 {
     .status = SNODE_CAL_READ_SUCCESS,
 };
+
+// Intrusive Control Mode (ICM) status. Value is initialized to 'false' to 
+// perform normal operation on reset.
+//
+static bool snode_icm = false;
 
 // *****************************************************************************
 // ************************** Function Prototypes ******************************
@@ -130,12 +135,24 @@ void SNodeTask( void )
 {
     // Host <-> FMU <-> Servo-Node communication tasks.
     SNodeCtrlDataTask();
-    SNodeCtrlCmdTask();
+    
+    // Servo-Node is not being intrusively controlled ?
+    if( snode_icm == false )
+    {
+        // Perform normal operation of constructing and sending the 
+        // controller commands.
+        SNodeCtrlCmdTask();
+    }
     
     // Web <-> FMU <-> Servo-Node communication tasks.
     SNodeIDWriteTask();
     SNodeCalWriteTask();
     SNodeCalReadTask();
+}
+
+void SNodeICMSet( bool icm )
+{
+    snode_icm = icm;
 }
 
 void SNodeCalWriteSet( uint8_t node_id, SNODE_CFG_VAL* cfg_val_p )

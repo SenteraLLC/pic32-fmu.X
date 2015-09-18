@@ -428,6 +428,25 @@ HTTP_IO_RESULT HTTPExecuteGet(void)
             
             SNodeCalReadSet( id );
         }
+        else if (strcmp((const char*)ptr, "sendModeValue") == 0)
+        {
+            uint8_t *cmdPtr;
+            uint8_t mode;
+            
+            cmdPtr = HTTPGetROMArg(curHTTP.data, (ROM uint8_t *)"mode");
+            mode = atoi((char*)cmdPtr);
+            
+            // Test mode ?
+            if(mode == 1)
+            {
+                SNodeICMSet( true );
+            }
+            // Normal mode.
+            else
+            {
+                SNodeICMSet( false );
+            }
+        }
         else if (strcmp((const char*)ptr, "sendTestValue") == 0)
         {
             uint8_t *cmdPtr;

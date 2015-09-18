@@ -146,6 +146,25 @@
                 document.getElementById('cfgResp').value = "";
             }
             
+            function testModeAction()
+            {
+                // Only enabled the CAN Servo-Node Test "Send" button if "Test"
+                // mode is selected.
+                if (document.getElementById('testMode').value === "1")
+                {
+                    document.getElementById('testButton').disabled = false;
+                }
+                else
+                {
+                    document.getElementById('testButton').disabled = true;
+                }
+                
+                // Issue command to server to identify operation state.
+                newAJAXCommand('buttons.cgi?button=sendModeValue' +
+                               '&mode='        + document.getElementById('testMode').value.toString() + 
+                               '&timestamp='   + (new Date()).getTime());
+            }
+            
             // Action for sending a test value.
             function testValueAction()
             {
@@ -595,6 +614,30 @@
                     </td>
                 </tr>
                 <tr>
+                    <td style="text-align: left">
+                        <b>Mode*</b>
+                    </td>
+                <td style="text-align: center">
+                    <select name="testMode" id="testMode" onchange="testModeAction()">
+                            <option value="0">Normal</option>
+                            <option value="1">Test</option>
+                        </select>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: left" colspan="4">
+                        <p><b>*</b>Setting the mode to <i>Test</i> inhibits the FMU from processing BeagleBone and RC servo commands.  Return the mode to <i>Normal</i> before closing this browser to resume normal operation.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
                     <td style="text-align: right">
                         <b>ID</b>
                     </td>
@@ -623,7 +666,7 @@
                         </select>
                     </td>
                     <td style="text-align: center">
-                        <button type="button" style="width: 50px" onclick="testValueAction()">send</button>
+                        <button id="testButton" type="button" style="width: 50px" onclick="testValueAction()" disabled="disabled">send</button>
                     </td>
                 </tr>
             </table>

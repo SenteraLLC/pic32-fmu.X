@@ -12,7 +12,6 @@
 // *****************************************************************************
 
 #include "oemstar.h"
-#include <sys/attribs.h>
 #include "fmucomm.h"
 #include "uart.h"
 #include "coretime.h"
@@ -64,13 +63,17 @@ void OEMStarTask( void )
 // ************************** Static Functions *********************************
 // *****************************************************************************
 
-// Forward received Ethernet messages (i.e. Commands) to the GPS receiver.
-//
-// Note: Only a single message can be transmitted at a time; that is, if an
-// additional GPS command is received while a previous one is being forwarded
-// over UART, the newly received GPS command will be ignored and the TX overflow
-// flag will be set.
-//
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Host->FMU->OEMStar Forward.
+///
+/// @note   Only a single message can be transmitted at a time; that is, if an
+///         additional GPS command is received while a previous one is being 
+///         forwarded over UART, the newly received GPS command will be ignored 
+///         and the TX overflow flag will be set.
+///
+/// This function forwards received Ethernet messages (i.e. Commands) to the
+/// GPS receiver.
+////////////////////////////////////////////////////////////////////////////////
 static void OEMStarCmdFwd( void )
 {
     static uint8_t       uart_tx_data[ OEMSTAR_TX_DATA_LEN ];
@@ -127,20 +130,29 @@ static void OEMStarCmdFwd( void )
     }
 }
 
-// Forward received GPS receiver messages (i.e. Responses and Logs) to the
-// Ethernet.
+////////////////////////////////////////////////////////////////////////////////
+/// @brief  Host<-FMU<-OEMStar Forward.
+///
+/// @note   Only a single message can be transmitted at a time; that is, if an
+///         additional GPS command is received while a previous one is being 
+///         forwarded over UART, the newly received GPS command will be ignored 
+///         and the TX overflow flag will be set.
+///
+/// This function forwards received GPS receiver messages (i.e. Responses and 
+/// Logs) to the Ethernet interface.
+////////////////////////////////////////////////////////////////////////////////
 static void OEMStarRspFwd( void )
 {
     static FMUCOMM_GPS_DATA_PL gps_data_pl;
-    static uint16_t            gps_data_len;
+    static uint16_t            gps_data_len = 0;
     
-    static uint32_t rx_time_us;
+    static uint32_t rx_time_us = 0;
     
     const UART_RX_BUF_S* uartRxBuf;
           bool           setSuccess;
     
     // Get UART buffered data.
-    uartRxBuf = UARTGet();
+    uartRxBuf = UARTGet( UART_MODULE_1 );
     
     // UART data received ?
     if( uartRxBuf->data_len != 0 )
@@ -183,7 +195,7 @@ static void OEMStarRspFwd( void )
         //      - 6 byte deep buffer before servicing.
         // Therefore, with 100% UART receiver utilization, the OEMStar 
         // application module will receive fresh data every:
-        //  - (1/115200) * 10 * 6 = 0.52 ms.
+        //  -> (1/115200) * 10 * 6 = 0.52 ms.
         // Additional margin is added to the timeout to treat non-ideal
         // conditions.
         //

@@ -19,6 +19,8 @@
 // ************************** User Include Files *******************************
 // *****************************************************************************
 
+#include "sbus.h"
+
 // *****************************************************************************
 // ************************** Defines ******************************************
 // *****************************************************************************
@@ -40,10 +42,12 @@ typedef enum
 {   
     FMUCOMM_TYPE_FMU_HEARTBEAT,     
     FMUCOMM_TYPE_IMU_DATA,          
-    FMUCOMM_TYPE_GPS_DATA,          
-    FMUCOMM_TYPE_AIR_DATA,          
+    FMUCOMM_TYPE_GPS_DATA,                  
     FMUCOMM_TYPE_CTRL_SURFACE_DATA, 
-    FMUCOMM_TYPE_FMU_EXCEPTION,     
+    FMUCOMM_TYPE_RC_DATA,       
+    FMUCOMM_TYPE_FMU_EXCEPTION,   
+            
+    FMUCOMM_TX_TYPE_MAX,
             
 } FMUCOMM_TX_TYPE_E;
 
@@ -102,15 +106,19 @@ typedef struct __attribute__ ((packed))
 {
     union
     {
-        struct
+        struct __attribute__ ((packed))
         {
-            uint32_t fwVersion;     // Firmware version ID.
-            uint32_t hwVersion;     // Hardware version ID.
+            uint8_t	 fwVersionRev;  // Firmware revision version ID.
+            uint8_t	 fwVersionMin;  // Firmware minor version ID.
+            uint8_t	 fwVersionMaj;  // Firmware major version ID.
+            uint8_t	 hwVersionRev;  // Hardware revision version ID.
+            uint8_t	 hwVersionMin;  // Hardware minor version ID.
+            uint8_t	 hwVersionMaj;  // Hardware major version ID.
             uint32_t serialNum;     // Serial number.
             uint32_t msUptime;      // System uptime in milliseconds.
         };
         
-        uint8_t pl_u8[ 16 ];
+        uint8_t pl_u8[ 14 ];
     };
     
 } FMUCOMM_HOST_HEARTBEAT_PL;
@@ -128,9 +136,9 @@ typedef struct __attribute__ ((packed))
 {
     union
     {
-        FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ctrlSurface[ 20 ];
+        FMUCOMM_CTRL_SURFACE_CMD_PL_FIELD ctrlSurface[ 10 ];
         
-        uint8_t pl_u8[ 120 ];
+        uint8_t pl_u8[ 60 ];
     };
             
 } FMUCOMM_CTRL_SURFACE_CMD_PL;
@@ -163,8 +171,12 @@ typedef struct __attribute__ ((packed))
 
 typedef struct __attribute__ ((packed))
 {
-    uint32_t fwVersion;     // Firmware version ID.
-    uint32_t hwVersion;     // Hardware version ID.
+    uint8_t	 fwVersionRev;  // Firmware revision version ID.
+    uint8_t	 fwVersionMin;  // Firmware minor version ID.
+    uint8_t	 fwVersionMaj;  // Firmware major version ID.
+    uint8_t	 hwVersionRev;  // Hardware revision version ID.
+    uint8_t	 hwVersionMin;  // Hardware minor version ID.
+    uint8_t	 hwVersionMaj;  // Hardware major version ID.
     uint32_t serialNum;     // Serial number.
     uint32_t msUptime;      // System uptime in milliseconds.
     uint16_t inputVoltage;  // Input voltage in millivolts.
@@ -176,7 +188,7 @@ typedef struct __attribute__ ((packed))
     uint64_t fmuTime;       // FMU timestamp in microseconds.
     uint16_t imuType;       // IMU type: 0 = VN-100, 1 = MPU-9150
     
-    struct
+    struct __attribute__ ((packed))
     {
         uint16_t mag    :  1;   // bits       0
         uint16_t accel  :  1;   // bits       1
@@ -232,6 +244,12 @@ typedef struct __attribute__ ((packed))
     FMUCOMM_CTRL_SURFACE_DATA_PL_FIELD ctrlSurface[ 10 ];
             
 } FMUCOMM_CTRL_SURFACE_DATA_PL;
+
+typedef struct __attribute__ ((packed))
+{
+    uint16_t chVal[ SBUS_CH_MAX ];
+    
+} FMUCOMM_CH_DATA_PL;
 
 typedef struct __attribute__ ((packed))
 {

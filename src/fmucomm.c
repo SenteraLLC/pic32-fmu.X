@@ -61,22 +61,22 @@ typedef struct
 // correspond with packet buffer size definition (i.e. see structure definition 
 // of message payload sizes); otherwise invalid array access can occur.
 //
-static const FMUCOMM_RX_CFG fmucommRxCfg [ ] =
+static const FMUCOMM_RX_CFG fmucommRxCfg[ FMUCOMM_RX_TYPE_MAX ] =
 {
-    { 'U', 'M', 'N', 0x00, 16,   16 },  // FMUCOMM_TYPE_HOST_HEARTBEAT     
+    { 'U', 'M', 'N', 0x00, 14,   14 },  // FMUCOMM_TYPE_HOST_HEARTBEAT     
     { 'U', 'M', 'N', 0x01,  3,   60 },  // FMUCOMM_TYPE_CTRL_SURFACE_CMD    
     { 'U', 'M', 'N', 0x02,  1, 1024 },  // FMUCOMM_TYPE_GPS_CMD   
     { 'U', 'M', 'N', 0x7F,  1, 1024 },  // FMUCOMM_TYPE_HOST_EXCEPTION 
 };
 
 // Configuration data for transmitted messages
-static const FMUCOMM_TX_CFG fmucommTxCfg [ ] =
+static const FMUCOMM_TX_CFG fmucommTxCfg[ FMUCOMM_TX_TYPE_MAX ] =
 {
     { 'U', 'M', 'N', 0x80 },  // FMUCOMM_TYPE_FMU_HEARTBEAT     
     { 'U', 'M', 'N', 0x81 },  // FMUCOMM_TYPE_IMU_DATA          
-    { 'U', 'M', 'N', 0x82 },  // FMUCOMM_TYPE_GPS_DATA          
-    { 'U', 'M', 'N', 0x83 },  // FMUCOMM_TYPE_AIR_DATA          
+    { 'U', 'M', 'N', 0x82 },  // FMUCOMM_TYPE_GPS_DATA                  
     { 'U', 'M', 'N', 0x84 },  // FMUCOMM_TYPE_CTRL_SURFACE_DATA 
+    { 'U', 'M', 'N', 0x85 },  // FMUCOMM_TYPE_RC_DATA 
     { 'U', 'M', 'N', 0xFF },  // FMUCOMM_TYPE_FMU_EXCEPTION     
 };
 

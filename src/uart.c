@@ -14,6 +14,7 @@
 // *****************************************************************************
 
 #include "uart.h"
+#include "ts.h"
 
 // *****************************************************************************
 // ************************** Defines ******************************************
@@ -299,6 +300,7 @@ bool UARTSet( UART_TX_BUF_S* tx_buf_p )
 ////////////////////////////////////////////////////////////////////////////////
 void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void ) 
 {
+ts_start(UART1_ISR);
     // Receiver caused interrupt ?
     //
     // Note: Since multiple interrupts can trigger the ISR, both the enabling
@@ -326,6 +328,7 @@ void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void )
         // Service the transmitter.
         UARTBufTX();
     }
+ts_end(UART1_ISR);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -339,8 +342,10 @@ void __ISR ( _UART_1_VECTOR, IPL1SOFT) UART1ISR( void )
 ////////////////////////////////////////////////////////////////////////////////
 void __ISR ( _UART_2_VECTOR, IPL1SOFT) UART2ISR( void ) 
 {
+ts_start(UART2_ISR);
     // Service the receiver.
     UARTBufRx( UART_MODULE_2 );
+ts_end(UART2_ISR);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

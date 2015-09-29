@@ -15,6 +15,7 @@
 
 #include "system.h"
 #include "i2c.h"
+#include "ts.h"
 
 // *****************************************************************************
 // ************************** Defines ******************************************
@@ -140,6 +141,8 @@ void __ISR (_TIMER_4_VECTOR, IPL6SOFT) Timer4ISR(void)
     static uint8_t i2cBytesRead = 0;
     static uint8_t i2cBytesWritten = 0;
 
+ts_start(I2C_T4_ISR);
+    
     // Delay in case of clock stretching.
     if (mGetI2CClkLat() && !mGetI2CClk())
     {
@@ -546,5 +549,7 @@ void __ISR (_TIMER_4_VECTOR, IPL6SOFT) Timer4ISR(void)
     }
     
     mT4ClearIntFlag();
+    
+ts_end(I2C_T4_ISR);
     return;
 }

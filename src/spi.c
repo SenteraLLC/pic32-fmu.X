@@ -14,6 +14,7 @@
 // *****************************************************************************
 
 #include "spi.h"
+#include "ts.h"
 
 // *****************************************************************************
 // ************************** Macros *******************************************
@@ -180,6 +181,7 @@ void __ISR (_SPI_2_VECTOR, IPL7SRS) SPI2ISR(void)
 {
     uint8_t data;
 
+ts_start(SPI2_ISR);
     // SPI2 Error Interrupt -------------------------------
 
     if (IFS1bits.SPI2EIF == 1)
@@ -236,5 +238,6 @@ void __ISR (_SPI_2_VECTOR, IPL7SRS) SPI2ISR(void)
         }
         IFS1CLR = _IFS1_SPI2TXIF_MASK;      // Clear TX interrupt flag.
     }
+ts_end(SPI2_ISR);
 }
 

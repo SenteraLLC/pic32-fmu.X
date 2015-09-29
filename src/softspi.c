@@ -14,6 +14,7 @@
 #include "tcpip/tcpip.h"
 #include "system.h"
 #include "softspi.h"
+#include "ts.h"
 
 // *****************************************************************************
 // ************************** Macros *******************************************
@@ -122,6 +123,7 @@ void __ISR (_TIMER_5_VECTOR, IPL7SRS) Timer5ISR(void)
 {
     static int spiState = 0;
 
+ts_start(SPI_T5_ISR);
     if (spiState < (2 * spiXferBits))
     {
         if ((spiState % 2) == 0)
@@ -163,5 +165,7 @@ void __ISR (_TIMER_5_VECTOR, IPL7SRS) Timer5ISR(void)
     }
 
     mT5ClearIntFlag();
+    
+ts_end(SPI_T5_ISR);
     return;
 }

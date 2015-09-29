@@ -46,6 +46,7 @@
       <itemPath>inc/snode.h</itemPath>
       <itemPath>inc/sbus.h</itemPath>
       <itemPath>inc/rc.h</itemPath>
+      <itemPath>inc/ts.h</itemPath>
     </logicalFolder>
     <logicalFolder name="f1" displayName="HTTP Files" projectFiles="true">
       <itemPath>http/favicon.ico</itemPath>
@@ -107,6 +108,7 @@
       <itemPath>src/snode.c</itemPath>
       <itemPath>src/sbus.c</itemPath>
       <itemPath>src/rc.c</itemPath>
+      <itemPath>src/ts.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

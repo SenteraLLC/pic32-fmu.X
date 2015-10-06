@@ -131,6 +131,11 @@ void CoreTimeDelayMs(uint32_t ms)
 ////////////////////////////////////////////////////////////////////////////////
 void __ISR (_CORE_TIMER_VECTOR, IPL7SRS) CoreTimerISR(void)
 {
+    // Re-write the compare register to its maximum value to have core-timer
+    // operate as a continuous roll-over counter.  The compare register is 
+    // required to be written to clear the CPU asserted interrupt signal.
+    _mtc0(_CP0_COMPARE, _CP0_COMPARE_SELECT, 0xFFFFFFFF);
+    
     coreTimeOverflow++;             // Increment core timer overflow count.
     IFS0CLR = _IFS0_CTIF_MASK;      // Clear core timer interrupt flag.
 }

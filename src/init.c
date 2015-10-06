@@ -174,6 +174,10 @@ static void InitTMR( void )
     IFS0CLR = _IFS0_CTIF_MASK;      // Clear core timer interrupt flag.
     IEC0SET = _IEC0_CTIE_MASK;      // Enable CT interrupts.
     
+    // Write to compare register for the core-timer to maximum value so the
+    // core-timer will serve as a continuous roll-over counter.
+    _mtc0(_CP0_COMPARE, _CP0_COMPARE_SELECT, 0xFFFFFFFF);
+    
     // Initialize Timer 4 (software I2C clock)
     ConfigIntTimer4(T4_INT_OFF | T4_INT_PRIOR_6 | T4_INT_SUB_PRIOR_0);
     OpenTimer4(T4_ON | T4_IDLE_CON | T4_PS_1_1, 800);       // 100 kHz

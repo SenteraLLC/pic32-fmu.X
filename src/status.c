@@ -48,7 +48,7 @@ typedef struct
 static const uint8_t  status_node_type  = 0;
 
 static const uint8_t  status_fw_rev_ver = 0;    ///< Firmware revision version number.
-static const uint8_t  status_fw_min_ver = 1;    ///< Firmware minor version number.
+static const uint8_t  status_fw_min_ver = 2;    ///< Firmware minor version number.
 static const uint8_t  status_fw_maj_ver = 1;    ///< Firmware major version number.
 
 static const uint8_t  status_hw_rev_ver = 0;    ///< Hardware revision version number.

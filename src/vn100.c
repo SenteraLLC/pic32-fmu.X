@@ -103,7 +103,7 @@ typedef struct
     
 } VN100_COMM_PKT;
 
-// Communication Protocol Payload.
+// Communication Protocol Payload when writing uninitialized VN100.
 typedef struct __attribute__ ((packed))
 {
     uint8_t  serialCount;
@@ -114,7 +114,23 @@ typedef struct __attribute__ ((packed))
     uint8_t  spiChecksum;
     uint8_t  errorMode;
     
-}VN100_COMM_PROTO_PL;
+}VN100_COMM_PROTO_WRITE_PL;
+
+// Communication Protocol Payload when reading initialized VN100.
+typedef struct __attribute__ ((packed))
+{
+    uint8_t          serialCount;
+    uint8_t          serialStatus;
+    uint8_t          spiCount;
+    uint8_t          spiStatus;
+    uint8_t          serialChecksum;
+    uint8_t          spiChecksum;
+    uint8_t          errorMode;
+    
+    VN100_VPE_STATUS vpeStatus;         // Vector Processing Engine Status.
+    uint32_t         syncInTime;        // Time since last SyncIn trigger.
+    
+}VN100_COMM_PROTO_READ_PL;
 
 // IMU Measurement Payload.
 typedef struct __attribute__ ((packed))
@@ -158,7 +174,8 @@ FMUCOMM_IMU_DATA_PL vn100_lan_imu_data;
 // Communication Protocol Control Data -----------------------------------------
 //
 
-static const VN100_COMM_PROTO_PL vn100_comm_proto_pl =
+static       VN100_COMM_PROTO_READ_PL  vn100_comm_read_proto_pl;
+static const VN100_COMM_PROTO_WRITE_PL vn100_comm_write_proto_pl =
 {
     0,    // serialCount    - N/A, SPI used. 
     0,    // serialStatus   - N/A, SPI used.  
@@ -169,16 +186,31 @@ static const VN100_COMM_PROTO_PL vn100_comm_proto_pl =
     0,    // errorMode      - N/A, SPI used.
 };
 
-static VN100_COMM_PKT vn100_comm_proto_pkt = 
+static VN100_COMM_PKT vn100_comm_read_proto_pkt = 
+{
+    .cmdID       = VN100_READ_REG_CMD,
+    .arg         = 30,
+    
+    .reqPl       = NULL,
+    .reqPlLen    = 0,
+    
+    .respPl      = (uint8_t*) &vn100_comm_read_proto_pl,
+    .respPlLen   = sizeof( vn100_comm_read_proto_pl ),
+    
+    .crcComp     = true,        // CRC computed since this is a check to see if VN100 already configured.
+    .commSuccess = false,
+};
+
+static VN100_COMM_PKT vn100_comm_write_proto_pkt = 
 {
     .cmdID       = VN100_WRITE_REG_CMD,
     .arg         = 30,
     
-    .reqPl       = (uint8_t*) &vn100_comm_proto_pl,
-    .reqPlLen    = sizeof( vn100_comm_proto_pl ),
+    .reqPl       = (uint8_t*) &vn100_comm_write_proto_pl,
+    .reqPlLen    = sizeof( vn100_comm_write_proto_pl ),
     
-    .respPl      = NULL,                            // Don't care about response field.
-    .respPlLen   = sizeof( vn100_comm_proto_pl ),   // Still need to read response field.
+    .respPl      = NULL,                                  // Don't care about response field.
+    .respPlLen   = sizeof( vn100_comm_write_proto_pl ),   // Still need to read response field.
     
     .crcComp     = false,       // CRC not computed since VN100 not yet configured.
     .commSuccess = false,
@@ -239,8 +271,21 @@ static bool VN100Comm( VN100_COMM_PKT* pkt );
 
 void VN100Task( void )
 {
+    // Note: The chosen method of startup is to detect if the VN100 is 
+    // configured for operation.  If the device is not correctly configured,
+    // then the software writes the configuration to the peripheral.  If the 
+    // device is already configured, then normal operation is immediately
+    // performed.
+    //
+    // An alternative method could be performed in which the VN100 is always
+    // reset on startup so that its state is known.  This method has the major
+    // disadvantage of resetting the Kalman filter.  If the PIC32 experiences
+    // a WDT reset during flight, immediate response of the VN100 is necessary
+    // to achieve the best potential of maintaining flight.
+    //
     static enum
     {
+        SM_DETECT,          // Detect if the VN-100 is already configured correctly.
         SM_INIT,            // Initialize the VN-100 peripheral.
         SM_SPI_IMU_GET,     // Get IMU data - i.e. mag, accel, gyro, temp, pressure.
         SM_SPI_YPR_GET,     // Get YPR data - i.e. yaw, pitch, roll.
@@ -248,15 +293,44 @@ void VN100Task( void )
         SM_LAN_DATA_SEND,   // Sent the constructed LAN/Ethernet data.
         SM_DELAY,           // Delay required time for periodic transfer of data.
                 
-    } vn100TaskState = SM_INIT;
+    } vn100TaskState = SM_DETECT;
 
     switch (vn100TaskState)
     {
+        case SM_DETECT:
+        {
+            // Read the Communication Protocol Control register until
+            // communication is completed.
+            if( VN100Comm( &vn100_comm_read_proto_pkt ) == true )
+            {
+                // Register was read successfully and matches expected value ?
+                if( ( vn100_comm_read_proto_pkt.commSuccess   == true                                     ) &&
+                    ( vn100_comm_read_proto_pl.serialCount    == vn100_comm_write_proto_pl.serialCount    ) &&
+                    ( vn100_comm_read_proto_pl.serialStatus   == vn100_comm_write_proto_pl.serialStatus   ) &&
+                    ( vn100_comm_read_proto_pl.spiCount       == vn100_comm_write_proto_pl.spiCount       ) &&
+                    ( vn100_comm_read_proto_pl.spiStatus      == vn100_comm_write_proto_pl.spiStatus      ) &&
+                    ( vn100_comm_read_proto_pl.serialChecksum == vn100_comm_write_proto_pl.serialChecksum ) &&
+                    ( vn100_comm_read_proto_pl.spiChecksum    == vn100_comm_write_proto_pl.spiChecksum    ) &&
+                    ( vn100_comm_read_proto_pl.errorMode      == vn100_comm_write_proto_pl.errorMode      ) )
+                {
+                    // Configuration of the VN100 is already complete;
+                    // continue immediately with normal operation.
+                    vn100TaskState = SM_SPI_IMU_GET;
+                }
+                else
+                {
+                    // VN100 is not yet configured; perform peripheral
+                    // initialization.
+                    vn100TaskState = SM_INIT;
+                }
+            }
+            break;
+        }
         case SM_INIT:
         {
             // Write the Communication Protocol Control register until
             // communication is completed.
-            if( VN100Comm( &vn100_comm_proto_pkt ) == true )
+            if( VN100Comm( &vn100_comm_write_proto_pkt ) == true )
             {
                 // Register was successfully written ?
                 //
@@ -264,7 +338,7 @@ void VN100Task( void )
                 // retain and current state and the register will attempt to
                 // be re-written.
                 //
-                if( vn100_comm_proto_pkt.commSuccess == true )
+                if( vn100_comm_write_proto_pkt.commSuccess == true )
                 {
                     vn100TaskState++;
                 }

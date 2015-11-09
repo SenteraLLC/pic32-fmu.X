@@ -366,7 +366,11 @@ void UDPTask(void)
                 // Note that this will continuously send out ARP
                 // requests for an infinite time if the Gateway
                 // never responds
-                if((uint16_t)TickGetDiv256() - UDPSocketInfo[ss].eventTime> (uint16_t)UDPSocketInfo[ss].retryInterval)
+                //
+                // Note: 16-bit unsigned math performed.  Left-hand side must
+                // be typecast to 16-bit after subtraction so equivalent terms
+                // are used in the comparison.
+                if((uint16_t)((uint16_t)TickGetDiv256() - UDPSocketInfo[ss].eventTime) > (uint16_t)UDPSocketInfo[ss].retryInterval)
                 {
                     // Exponentially increase timeout until we reach 6 attempts then stay constant
                     if(UDPSocketInfo[ss].retryCount < 6u)

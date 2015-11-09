@@ -2553,7 +2553,11 @@ void TCPTick(void)
                     // Note that this will continuously send out ARP
                     // requests for an infinite time if the Gateway
                     // never responds
-                    if((uint16_t)TickGetDiv256() - MyTCBStub.eventTime2 > (uint16_t)MyTCB.retryInterval)
+                    //
+                    // Note: 16-bit unsigned math performed.  Left-hand side must
+                    // be typecast to 16-bit after subtraction so equivalent terms
+                    // are used in the comparison.
+                    if((uint16_t)((uint16_t)TickGetDiv256() - MyTCBStub.eventTime2) > (uint16_t)MyTCB.retryInterval)
                     {
                         // Exponentially increase timeout until we reach 6 attempts then stay constant
                         if(MyTCB.retryCount < 6u)
@@ -2739,7 +2743,11 @@ void TCPTick(void)
                 break;
 
             // See if this SYN has timed out
-            if((uint16_t)TickGetDiv256() - SYNQueue[w].wTimestamp > (uint16_t)(TCP_SYN_QUEUE_TIMEOUT/256ull))
+            //
+            // Note: 16-bit unsigned math performed.  Left-hand side must
+            // be typecast to 16-bit after subtraction so equivalent terms
+            // are used in the comparison.
+            if((uint16_t)((uint16_t)TickGetDiv256() - SYNQueue[w].wTimestamp) > (uint16_t)(TCP_SYN_QUEUE_TIMEOUT/256ull))
             {
                 // Delete this SYN from the SYNQueue and compact the SYNQueue[] array
                 TCPRAMCopy((PTR_BASE)&SYNQueue[w], TCP_PIC_RAM, (PTR_BASE)&SYNQueue[w+1], TCP_PIC_RAM, (TCP_SYN_QUEUE_MAX_ENTRIES-1u-w)*sizeof(TCP_SYN_QUEUE));

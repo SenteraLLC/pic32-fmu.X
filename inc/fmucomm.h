@@ -25,6 +25,8 @@
 // ************************** Defines ******************************************
 // *****************************************************************************
 
+#define FMUCOMM_GPS_DATA_LEN_C 800U
+
 // Received (Host -> FMU) messages.
 typedef enum
 {
@@ -223,9 +225,9 @@ typedef struct __attribute__ ((packed))
 
 typedef struct __attribute__ ((packed))
 {
-    uint64_t fmuTime;       // FMU timestamp in nanosecones.
-    uint16_t gpsType;       // GPS type: 0 = Novatel OEMStar, 1 = U-blox
-    uint8_t  gpsData[1500]; // GPS receiver data.
+    uint64_t fmuTime;                          // FMU timestamp in nanosecones.
+    uint16_t gpsType;                          // GPS type: 0 = Novatel OEMStar, 1 = U-blox
+    uint8_t  gpsData[FMUCOMM_GPS_DATA_LEN_C];  // GPS receiver data.
 } FMUCOMM_GPS_DATA_PL;
 
 typedef struct __attribute__ ((packed))

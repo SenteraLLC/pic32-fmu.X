@@ -204,8 +204,8 @@ static void OEMStarRspFwd( void )
         // not overflow.  Segmenting of responses to Ethernet packets is 
         // unlikely in this case.
         //
-        if( ( CoreTime32usGet() - rx_time_us > 1000 ) ||
-            ( gps_data_len                   > 1125 ) )
+        if( ( CoreTime32usGet() - rx_time_us > 1000                                 ) ||
+            ( gps_data_len                   > (( 3 * FMUCOMM_GPS_DATA_LEN_C ) / 4) ) )
         {
             // Populate additional GPS data fields.
             gps_data_pl.fmuTime = CoreTime64usGet();

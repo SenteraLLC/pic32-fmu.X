@@ -1,9 +1,9 @@
-# FMU Communications Board
+﻿# FMU Communications Board
 
 Initial development performed by partnership of [Sentera, LLC](https://sentera.com/) and [University of Minnesota](http://www.uav.aem.umn.edu/).
 
 ## System Overview
-![System Diagram](/doc/System%20Diagram.png?raw=true "System Diagram")
+![System Diagram](/doc/System%20Diagram.jpg?raw=true "System Diagram")
 
 The FMU Communications Board is designed as a component of the Flight Management System.  The FMU Communications Board is a Microchip PIC32 based module with the primary function of managing communications between the FMU Processing Board and the rest of the Flight Management System.  The Ethernet and CAN communication protocols are detailed in file [UMN FMU Communication Protocol](/doc/UMN%20FMU%20Communication%20Protocol.docx).
 
@@ -59,6 +59,19 @@ The hardware contains the following physical interfaces:
 
 *Note: Power for the FMU Communications Board must be in the range of 3.6V to 36V.*
 
+### Hardware Stackup
+![Stackup Build](/doc/Hardware%20Stack.jpg?raw=true "Stackup Build")
+
+The above picture shows a constructed hardware stackup.  The boards on the stackup (from bottom to top) are:
+
+1. FMU Processing Board (Beaglebone Black)
+2. Beaglebone Cape - with IMU
+3. GPS receiver
+4. Sentera Comms Board
+5. uHard Datalink
+
+Additional hardware photos can be found on the University of Minnesota [media page](http://www.uav.aem.umn.edu/wiki/Media).
+
 ## Software Overview
 Source code is commented using Doxygen style formatting.  Therefore, Doxygen can be used to generate an easily navigable document which provides greater detail into the software's operation than the overview which is provided here.
 
@@ -81,10 +94,10 @@ The software implements a preemptive, cyclic executive using eight threads.  The
 
 4. **Default**: Thread is executed if any unexpected interrupts occur.
 
-All main software processing is performed in the 'Reset' thread.  All other threads have a higher priority (i.e. can preempt the 'Reset' thread) and purely handle servicing of the hardware.  The 'Reset' thread implement cooperative multitasking, where tasks are performed continuously, with the execution time of individual tasks being in the micro-second order of magnitude.  This allows for immediate response to system inputs and a small jitter in system output timing.
+All main software processing is performed in the 'Reset' thread.  All other threads have a higher priority (i.e. can preempt the 'Reset' thread) and purely handle servicing of the hardware.  The 'Reset' thread implements cooperative multitasking, where tasks are performed continuously, with the execution time of individual tasks being in the micro-second order of magnitude.  This allows for immediate response to system inputs and a small jitter in system output timing.
 
 ### Software Modules
-The software is a modular design.  The software modules are explained below, and map directly to [source code](/src) file names:
+The software is a modular design.  The software modules are explained below, and map directly to [source code](/src) file or folder names:
 
 >**adc**: Analog to Digital Converter (ADC) driver.
 

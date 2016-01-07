@@ -13,7 +13,7 @@ Besides the described primary function, the FMU Communications Board also:
 
 * Monitors and annunciates status of Flight Management System components.
 
-* Provides a Wi-Fi interface for:
+* Provides an Ethernet interface for:
 
   * Configuration of CAN Servo-Nodes.
   
@@ -30,7 +30,7 @@ The project includes the following folders:
 
 >[doxygen](/doxygen) - project file for generating Doxygen documentation.
 
->[http](/http) - files for definition of http interface.
+>[http](/http) - files for definition of HTTP interface.
 
 >[hw](/hw) - hardware design schematics.
 
@@ -45,17 +45,17 @@ The project includes the following folders:
 ## Hardware Overview
 The hardware contains the following physical interfaces:
 
->**Ethernet(x2)** - Communication with the FMU Processing Board and a Wi-Fi router.  Note: the FMU Communications Board (IP: 192.168.143.130) communicates with the FMU Processing Board (required IP: 192.168.143.11) over port number 55455.
+>**Ethernet** - Communication with the FMU Processing Board.  Note: the FMU Communications Board (IP: 192.168.143.130) communicates with the FMU Processing Board (required IP: 192.168.143.11) over port number 55455.
 
->**UART(x1)** - Communication with GPS module.
+>**UART** - Communication with GPS module.
 
->**S-Bus(x1)** - Communication with radio receiver.
+>**S-Bus** - Communication with radio receiver.
 
->**SPI(x1)** - Communication with IMU module.
+>**SPI** - Communication with IMU module.
 
->**CAN(x1)** - Communication with CAN Servo-Nodes.
+>**CAN** - Communication with CAN Servo-Nodes.
 
->**High-Density Connectors** - Communication with Microhard wireless Ethernet gateway.
+>**High-Density Connectors** - Communication with Microhard wireless Ethernet digital data link.
 
 *Note: Power for the FMU Communications Board must be in the range of 3.6V to 36V.*
 
@@ -64,13 +64,15 @@ The hardware contains the following physical interfaces:
 
 The above picture shows a constructed hardware stackup.  The boards on the stackup (from bottom to top) are:
 
-1. FMU Processing Board (Beaglebone Black)
-2. Beaglebone Cape - with IMU
+1. FMU Processing Board (BeagleBone Black)
+2. BeagleBone Cape - with IMU
 3. GPS receiver
 4. Sentera Comms Board
 5. uHard Datalink
 
 Additional hardware photos can be found on the University of Minnesota [media page](http://www.uav.aem.umn.edu/wiki/Media).
+
+*Note: BeagleBone Cape hardware design included in [hw](/hw) folder.*
 
 ## Software Overview
 Source code is commented using Doxygen style formatting.  Therefore, Doxygen can be used to generate an easily navigable document which provides greater detail into the software's operation than the overview which is provided here.
@@ -84,7 +86,7 @@ The software implements a preemptive, cyclic executive using eight threads.  The
 
 3. **IMU SPI**: Thread is executed based on SPI operation to service the hardware.
 
-4. **Wi-Fi SPI**: Thread is executed based on SPI operation to service communication with an internal Ethernet switch.
+4. **Ethernet SPI**: Thread is executed based on SPI operation to service communication with an internal Ethernet switch.
 
 5. **Temp I2C**: Thread is executed based on I2C operation to service communication with an internal temperature sensor.
 

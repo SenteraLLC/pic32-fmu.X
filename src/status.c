@@ -47,7 +47,7 @@ typedef struct
 /// The node type - value of '0' identifies node as a FMU node.
 static const uint8_t  status_node_type  = 0;
 
-static const uint8_t  status_fw_rev_ver = 2;    ///< Firmware revision version number.
+static const uint8_t  status_fw_rev_ver = 3;    ///< Firmware revision version number.
 static const uint8_t  status_fw_min_ver = 2;    ///< Firmware minor version number.
 static const uint8_t  status_fw_maj_ver = 1;    ///< Firmware major version number.
 

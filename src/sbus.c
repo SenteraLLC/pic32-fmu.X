@@ -83,6 +83,8 @@ void SBusListGet( uint16_t ch_list[ SBUS_CH_MAX ] )
 ////////////////////////////////////////////////////////////////////////////////
 static void SBusProcess( uint8_t byte_in )
 {
+    static uint8_t byte_in_prev = SBUS_HEADER_VALUE;
+    
     /// Structure defining the contents of an S.Bus data payload.  Each of the
     /// channel fields (ch1:ch16) occupies 11 bytes.
     typedef union
@@ -127,11 +129,10 @@ static void SBusProcess( uint8_t byte_in )
     
     static enum
     {
-        SM_END,
         SM_START,
         SM_DATA,         
                 
-    } sm_state = SM_END;
+    } sm_state = SM_START;
     
     static SBUS_DATA_U sbus_data;
     
@@ -141,28 +142,13 @@ static void SBusProcess( uint8_t byte_in )
     // packet - i.e. rather than only checking the start/header byte.
     switch( sm_state )
     {
-        case SM_END:
-        {
-            // End byte received ?
-            if( byte_in == SBUS_FOOTER_VALUE )
-            {
-                sm_state++;
-            }
-            
-            break;
-        }
         case SM_START:
         {
-            // Start byte received ?
-            if( byte_in == SBUS_HEADER_VALUE )
+            // Footer followed by Header byte has been received ?
+            if( ( byte_in_prev == SBUS_FOOTER_VALUE ) &&
+                ( byte_in      == SBUS_HEADER_VALUE ) )
             {
                 sm_state++;
-            }
-            else
-            {
-                // Start byte needs to be next received byte following the
-                // end byte of the previous message.
-                sm_state = SM_END;
             }
             
             break;
@@ -178,7 +164,7 @@ static void SBusProcess( uint8_t byte_in )
             {
                 // Reset for reception of next data stream.
                 ch_data_idx = 0;    
-                sm_state    = SM_END;
+                sm_state    = SM_START;
                         
                 // Process the received data.
                 sbus_ch_data[  0 ] = sbus_data.ch1;
@@ -202,4 +188,7 @@ static void SBusProcess( uint8_t byte_in )
             break;
         }
     }
+    
+    // Latch current byte for next evaluation.
+    byte_in_prev = byte_in;
 }
